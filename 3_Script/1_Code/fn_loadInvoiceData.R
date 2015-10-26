@@ -8,9 +8,13 @@ loadDeliveryInvoiceData <- function(invoiceDeliveryFile){
     setClass("myDate")
     setAs("character","myDate", function(from) as.POSIXct(substr(from,1,10), format="%Y-%m-%d"))
     setClass("myInteger")
-    setAs("character","myInteger", function(from) as.integer(gsub(',','',from)))
+    setAs("character","myInteger", function(from) as.integer(gsub(',','.',
+                                                                  gsub('\\.','',
+                                                                       gsub('[^0-9,\\.]','',from)))))
     setClass("myNumeric")
-    setAs("character","myNumeric", function(from) as.numeric(gsub(',','',from)))
+    setAs("character","myNumeric", function(from) as.numeric(gsub(',','.',
+                                                                  gsub('\\.','',
+                                                                       gsub('[^0-9,\\.]','',from)))))
     setClass("myTrackingNumber")
     setAs("character","myTrackingNumber", function(from) gsub('^0','',from))
     
@@ -40,9 +44,13 @@ loadCODInvoiceData <- function(invoiceCODFile){
     setClass("myDate")
     setAs("character","myDate", function(from) as.POSIXct(substr(from,1,10), format="%Y-%m-%d"))
     setClass("myInteger")
-    setAs("character","myInteger", function(from) as.integer(gsub(',','',from)))
+    setAs("character","myInteger", function(from) as.integer(gsub(',','.',
+                                                                  gsub('\\.','',
+                                                                       gsub('[^0-9,\\.]','',from)))))
     setClass("myNumeric")
-    setAs("character","myNumeric", function(from) as.numeric(gsub(',','',from)))
+    setAs("character","myNumeric", function(from) as.numeric(gsub(',','.',
+                                                                  gsub('\\.','',
+                                                                       gsub('[^0-9,\\.]','',from)))))
     setClass("myTrackingNumber")
     setAs("character","myTrackingNumber", function(from) gsub('^0','',from))
     

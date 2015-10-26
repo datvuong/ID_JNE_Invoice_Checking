@@ -1,7 +1,7 @@
 .libPaths("D:/Invoice_Automation/R_Library")
 
 options(warn=-1)
-
+library(lubridate)
 source("../1_Code/fn_loadRatecards.R")
 source("../1_Code/fn_loadInvoiceData.R")
 source("../1_Code/fn_loadOMSData.R")
@@ -20,6 +20,11 @@ PackageData <- select(OMS, order_nr, business_unit, payment_method,
                       Tracking_number, shipment_provider_name,
                       Seller_Code, Seller, tax_class,
                       shipping_city, shipping_region)
+
+PackageData %<>%
+  mutate(shipping_fee=ifelse(is.na(shipping_fee),0,shipping_fee)) %>%
+  mutate(shipping_surcharge=ifelse(is.na(shipping_surcharge),0,shipping_surcharge))
+
 PackageDataSummarized <- PackageData %>% group_by(order_nr,Tracking_number) %>%
     summarize(RTS_Date=last(RTS_Date),
               Shipped_Date=last(Shipped_Date),
@@ -75,13 +80,13 @@ for (iFile in list.files(DeliveryInvoice)){
             mutate(InsuranceFee_Flag=ifelse(InsuranceFee_Calculate==Insurance,"Okay","Not-Okay")) %>%
             mutate(Duplication_Flag=ifelse(duplicated(Tracking_number),"Duplicated",
                                             ifelse(Tracking_number %in% paidInvoice,
-                                                   "Duplicated",NA))) %>%
+                                                   "Duplicated","Not_Duplicated"))) %>%
             mutate(DuplicationSource=ifelse(duplicated(Tracking_number),"Self_Duplicated",
                                             ifelse(Tracking_number %in% paidInvoice,
-                                                   paidInvoiceList[Tracking_number,]$InvoiceFile,NA)))
+                                                   paidInvoiceList[Tracking_number,]$InvoiceFile,"")))
         
         InvoiceMappedRate %<>%
-            select(1:13,FrieghtCost_Calculate,InsuranceFee_Calculate,
+            select(1:13,OrderExisted,FrieghtCost_Calculate,InsuranceFee_Calculate,
                    FrieghtCost_Flag,InsuranceFee_Flag,
                    Duplication_Flag,DuplicationSource,
                    order_nr, business_unit, payment_method,
@@ -91,15 +96,16 @@ for (iFile in list.files(DeliveryInvoice)){
                    Seller_Code, Seller, tax_class,
                    shipping_city, shipping_region)
         
+        fileName <- gsub('\\.csv','',iFile)
         
         ##### Output #####
-        write.csv2(InvoiceMappedRate, file.path("../../2_Output/DELIVERY_INSURANCE",iFile),
+        write.csv2(InvoiceMappedRate, file.path("../../2_Output/DELIVERY_INSURANCE",paste0(fileName,'_checked.csv')),
                    row.names = FALSE)
     }
 }
 
 cat("Verify COD invoice data...\r\n")
-paidDeliveryInvoiceData <- loadPaidCODInvoiceData("../../1_Input/Paid_Invoice/COD")
+paidCODInvoiceData <- loadPaidCODInvoiceData("../../1_Input/Paid_Invoice/COD")
 CODInvoice <- file.path("../../1_Input/Invoice","COD")
 for (iFile in list.files(CODInvoice)){
     if (file_ext(iFile)=="csv"){
@@ -117,14 +123,15 @@ for (iFile in list.files(CODInvoice)){
         InvoiceMapped %<>%
             mutate(OrderExisted=ifelse(Order_Nr %in% OMS_OrderList,"Existed","Not-Existed"))
         
-        paidInvoice <- paidDeliveryInvoiceData$Tracking_number
-        paidInvoiceList <- select(paidDeliveryInvoiceData, Tracking_number,InvoiceFile)
+        paidInvoice <- loadPaidCODInvoiceData$Tracking_number
+        paidInvoiceList <- select(loadPaidCODInvoiceData, Tracking_number,InvoiceFile)
         row.names(paidInvoiceList) <- paidInvoiceList$Tracking_number
         
-        InvoiceMappedRate %<>%
-            mutate(COD_Fee_Calculated=ifelse(payment_method=="CashOnDelivery",
+        InvoiceMapped %<>%
+            mutate(COD_Fee_Calculated=ifelse(payment_method=="CashOnDelivery" &
+                                               !is.na(Delivered_Date),
                                              0.01*COD_Amount,0)) %>%
-            mutate(COD_Flag=ifelse(COD_Fee_Calculated==Management_Fee,
+            mutate(COD_Flag=ifelse(COD_Fee_Calculated>=Management_Fee,
                                              "Okay","Not-Okay")) %>%
             mutate(Duplication_Flag=ifelse(duplicated(Tracking_number),"Duplicated",
                                            ifelse(Tracking_number %in% paidInvoice,
@@ -134,8 +141,8 @@ for (iFile in list.files(CODInvoice)){
                                                    paidInvoiceList[Tracking_number,]$InvoiceFile,NA)))
         
         
-        InvoiceMappedRate %>%
-            select(1:13,COD_Fee_Calculated,COD_Flag,
+        InvoiceMapped %<>%
+            select(1:13,OrderExisted,COD_Fee_Calculated,COD_Flag,
                    Duplication_Flag,DuplicationSource,
                    order_nr, business_unit, payment_method,
                    Total_unit_price,COD_Amount, RTS_Date,
@@ -146,7 +153,7 @@ for (iFile in list.files(CODInvoice)){
         
         
         ##### Output #####
-        write.csv2(InvoiceMappedRate, file.path("../../2_Output/COD",iFile),
+        write.csv2(InvoiceMapped, file.path("../../2_Output/COD",iFile),
                    row.names = FALSE)
     }
 }
