@@ -29,7 +29,8 @@ loadPaidDeliveryInvoiceData <- function(deliveryInvoiceFile){
                                Amount=numeric(),
                                Instruction=character(),
                                Service=character(),
-                               Status=character())
+                               Status=character(),
+                               InvoiceFile=character())
   
   for (file in list.files(deliveryInvoiceFile)){
     if(file_ext(file)=="csv"){
@@ -89,7 +90,8 @@ loadPaidCODInvoiceData <- function(invoiceCODFolder){
                                Management_Fee=numeric(),
                                Instruction=character(),
                                Service=character(),
-                               Status=character())
+                               Status=character(),
+                               InvoiceFile=character())
   
   for (file in list.files(invoiceCODFolder)){
     if(file_ext(file)=="csv"){
