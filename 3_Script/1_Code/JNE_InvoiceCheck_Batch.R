@@ -77,7 +77,7 @@ for (iFile in list.files(DeliveryInvoice)){
     InvoiceMappedRate %<>%
       mutate(FrieghtCost_Calculate=TARIF * Weight,
              InsuranceFee_Calculate=ifelse(Total_unit_price < 1000000,2500,
-                                           0.005*Total_unit_price)) %>%
+                                           0.0025*Total_unit_price)) %>%
       mutate(FrieghtCost_Flag=ifelse(FrieghtCost_Calculate==Amount,"Okay","Not-Okay")) %>%
       mutate(InsuranceFee_Flag=ifelse(InsuranceFee_Calculate==Insurance,"Okay","Not-Okay")) %>%
       mutate(Duplication_Flag=ifelse(duplicated(Tracking_number),"Duplicated",
