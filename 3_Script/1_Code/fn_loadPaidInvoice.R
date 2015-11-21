@@ -18,7 +18,7 @@ loadPaidDeliveryInvoiceData <- function(deliveryInvoiceFile){
   setClass("myTrackingNumber")
   setAs("character","myTrackingNumber", function(from) gsub('^0','',from))
   
-  paidDeliveryInvoice <- data.frame(Tracking_number=character(),
+  paidDeliveryInvoice <- data.frame(tracking_number=character(),
                                TGL_ENTRY=as.POSIXct(character()),
                                Order_Nr=integer(),
                                Destination_Code=character(),
@@ -36,17 +36,17 @@ loadPaidDeliveryInvoiceData <- function(deliveryInvoiceFile){
     if(file_ext(file)=="csv"){
       currentFile <- read.csv2(file.path(deliveryInvoiceFile,file),
                                quote = '"',
-                               col.names = c("Tracking_number","TGL_ENTRY","Order_Nr",
+                               col.names = c("tracking_number","TGL_ENTRY","Order_Nr",
                                              "Destination_Code","Qty","Weight",
                                              "GOOD_Values","Insurance","Amount",
                                              "Instruction","Service","Status"),
-                               colClasses = c("myTrackingNumber","myDate","myInteger",
-                                              "character","myInteger","myNumeric",
+                               colClasses = c("myTrackingNumber","myDate","myNumeric",
+                                              "character","myNumeric","myNumeric",
                                               "myNumeric","myNumeric","myNumeric",
                                               "character","character","character"))
       
       currentFile %<>%
-        filter(!is.na(Tracking_number) & Tracking_number!='')
+        filter(!is.na(tracking_number) & tracking_number!='')
       currentFile %<>% mutate(InvoiceFile=file)
       
       if (is.null(paidDeliveryInvoice))
@@ -80,7 +80,7 @@ loadPaidCODInvoiceData <- function(invoiceCODFolder){
   setClass("myTrackingNumber")
   setAs("character","myTrackingNumber", function(from) gsub('^0','',from))
   
-  paidCODInvoice <- data.frame(Tracking_number=character(),
+  paidCODInvoice <- data.frame(tracking_number=character(),
                                TGL_ENTRY=as.POSIXct(character()),
                                Order_Nr=integer(),
                                Destination_Code=character(),
@@ -97,16 +97,16 @@ loadPaidCODInvoiceData <- function(invoiceCODFolder){
     if(file_ext(file)=="csv"){
       currentFile <- read.csv2(file.path(invoiceCODFolder,file),
                                quote = '"',
-                               col.names = c("Tracking_number","TGL_ENTRY","Order_Nr",
+                               col.names = c("tracking_number","TGL_ENTRY","Order_Nr",
                                              "Destination_Code","Qty","Weight",
                                              "GOOD_Values","Management_Fee","Instruction",
                                              "Service","Status"),
-                               colClasses = c("myTrackingNumber","myDate","myInteger",
-                                              "character","myInteger","myNumeric",
+                               colClasses = c("myTrackingNumber","myDate","myNumeric",
+                                              "character","myNumeric","myNumeric",
                                               "myNumeric","myNumeric","character",
                                               "character","factor"))
       currentFile %<>%
-        filter(!is.na(Tracking_number) & Tracking_number!='')
+        filter(!is.na(tracking_number) & tracking_number!='')
       currentFile %<>% mutate(InvoiceFile=file)
       
       

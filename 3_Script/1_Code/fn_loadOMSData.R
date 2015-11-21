@@ -36,6 +36,10 @@ LoadOMSData <- function(omsDataFolder){
                            shipping_city=character(),
                            shipping_region=character())
   
+  filesCount <- sum(grepl("\\.csv",list.files(omsDataFolder)))
+  pb <- txtProgressBar(min=0,max=filesCount, style = 3)
+  iProgress <- 0
+  setTxtProgressBar(pb, iProgress)
   for (file in list.files(omsDataFolder)){
     if(file_ext(file)=="csv"){
       currentFileData <- read.csv(file.path(omsDataFolder,file),
@@ -63,6 +67,9 @@ LoadOMSData <- function(omsDataFolder){
         omsDataAll <- currentFileData
       else
         omsDataAll <- rbind_list(omsDataAll,currentFileData)
+      
+      iProgress <- iProgress + 1
+      setTxtProgressBar(pb, iProgress)
     }
   }
   

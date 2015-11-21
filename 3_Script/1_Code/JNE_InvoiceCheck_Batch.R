@@ -1,162 +1,187 @@
-.libPaths("D:/Invoice_Automation/R_Library")
+dateReport <- format(Sys.time(), "%Y%m%d%H%M")
 
-options(warn=-1)
-library(lubridate)
-source("3_Script/1_Code/fn_loadRatecards.R")
-source("3_Script/1_Code/fn_loadInvoiceData.R")
-source("3_Script/1_Code/fn_loadOMSData.R")
-source("3_Script/1_Code/fn_loadPaidInvoice.R")
+suppressMessages({
+  library(dplyr)
+  library(tidyr)
+  library(magrittr)
+  library(lubridate)
+  library(logging)
+})
 
+basicConfig()
+addHandler(writeToFile, logger="IDInvoiceCheck",
+           file=file.path("3_Script/2_Log",
+                          paste0("ID_InvoiceChecking",dateReport,".csv")))
 
-cat("Loading ratecard data...\r\n")
-rateCard <- loadRateCards("1_Input/Ratecards/JNE_Ratecards.csv")
-cat("Loading OMS Data...\r\n")
-OMS <- LoadOMSData("1_Input/OMS_Data/")
-
-PackageData <- select(OMS, order_nr, business_unit, payment_method,
-                      unit_price,paid_price, shipping_fee, 
-                      shipping_surcharge, Item_Status, RTS_Date,
-                      Shipped_Date, Cancelled_Date, Delivered_Date,
-                      tracking_number, shipment_provider_name,
-                      Seller_Code, tax_class,
-                      shipping_city, shipping_region)
-
-PackageData %<>%
-  mutate(shipping_fee=ifelse(is.na(shipping_fee),0,shipping_fee)) %>%
-  mutate(shipping_surcharge=ifelse(is.na(shipping_surcharge),0,shipping_surcharge))
-
-PackageDataSummarized <- PackageData %>% group_by(order_nr,tracking_number) %>%
-  summarize(RTS_Date=last(RTS_Date),
-            Shipped_Date=last(Shipped_Date),
-            Cancelled_Date=last(Cancelled_Date),
-            Delivered_Date=last(Delivered_Date),
-            Total_unit_price=sum(unit_price),
-            payment_method=last(payment_method),
-            business_unit=last(business_unit),
-            COD_Amount=sum(paid_price)+sum(shipping_fee)+sum(shipping_surcharge),
-            shipment_provider_name=last(shipment_provider_name),
-            Seller_Code=last(Seller_Code),
-            tax_class=last(tax_class),
-            shipping_city=last(shipping_city),
-            shipping_region=last(shipping_region))
-
-options(warn=0)
-
-##### Match Invoice Data with OMS Data #####
-cat("Verify Delivery & Insruance invoice data...\r\n")
-paidDeliveryInvoiceData <- loadPaidDeliveryInvoiceData("1_Input/Paid_Invoice/DELIVERY_INSURANCE")
-DeliveryInvoice <- file.path("1_Input/Invoice","DELIVERY_INSURANCE")
-for (iFile in list.files(DeliveryInvoice)){
-  if (file_ext(iFile)=="csv"){
-    cat(paste0("--- Processing Invoice File: ",iFile, "\r\n"))
-    invoiceData <- loadDeliveryInvoiceData(file.path(DeliveryInvoice,iFile))
-    cat(paste0("----- Duplicated Invoice Data: ", sum(duplicated(invoiceData$tracking_number)),"\r\n"))
-    
-    TrackingNumber <- unique(OMS$tracking_number)
-    
-    InvoiceMapped <- left_join(invoiceData, PackageDataSummarized,
-                               by=("tracking_number"))
-    
-    OMS_OrderList <- unique(OMS$order_nr)
-    
-    InvoiceMapped %<>%
-      mutate(OrderExisted=ifelse(Order_Nr %in% OMS_OrderList |
-                                   !is.na(order_nr),"Existed","Not-Existed"))
-    
-    
-    
-    ##### Ratecard Calculation #####
-    InvoiceMappedRate <- left_join(InvoiceMapped, rateCard,
-                                   by=c("Destination_Code"="Coding"))
-    
-    paidInvoice <- paidDeliveryInvoiceData$tracking_number
-    paidInvoiceList <- select(paidDeliveryInvoiceData, tracking_number,InvoiceFile)
-    row.names(paidInvoiceList) <- paidInvoiceList$tracking_number
-    
-    InvoiceMappedRate %<>%
-      mutate(FrieghtCost_Calculate=TARIF * Weight,
-             InsuranceFee_Calculate=ifelse(Total_unit_price < 1000000,2500,
-                                           0.0025*Total_unit_price)) %>%
-      mutate(FrieghtCost_Flag=ifelse(FrieghtCost_Calculate==Amount,"Okay","Not-Okay")) %>%
-      mutate(InsuranceFee_Flag=ifelse(InsuranceFee_Calculate==Insurance,"Okay","Not-Okay")) %>%
-      mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
-                                     ifelse(tracking_number %in% paidInvoice,
-                                            "Duplicated","Not_Duplicated"))) %>%
-      mutate(DuplicationSource=ifelse(duplicated(tracking_number),"Self_Duplicated",
-                                      ifelse(tracking_number %in% paidInvoice,
-                                             paidInvoiceList[tracking_number,]$InvoiceFile,"")))
-    
-    InvoiceMappedRate %<>%
-      select(1:13,OrderExisted,FrieghtCost_Calculate,InsuranceFee_Calculate,
-             FrieghtCost_Flag,InsuranceFee_Flag,
-             Duplication_Flag,DuplicationSource,
-             order_nr, business_unit, payment_method,
-             Total_unit_price,COD_Amount, RTS_Date,
-             Shipped_Date, Cancelled_Date, Delivered_Date,
-             tracking_number, shipment_provider_name,
-             Seller_Code, Seller, tax_class,
-             shipping_city, shipping_region)
-    
-    fileName <- gsub('\\.csv','',iFile)
-    
-    ##### Output #####
-    write.csv2(InvoiceMappedRate, file.path("2_Output/DELIVERY_INSURANCE",paste0(fileName,'_checked.csv')),
-               row.names = FALSE)
+tryCatch({
+  
+  loginfo("Initial Setup", logger = "IDInvoiceCheck.module")
+  
+  
+  source("3_Script/1_Code/fn_loadRatecards.R")
+  source("3_Script/1_Code/fn_loadInvoiceData.R")
+  source("3_Script/1_Code/fn_loadOMSData.R")
+  source("3_Script/1_Code/fn_loadPaidInvoice.R")
+  source("3_Script/1_Code/fn_GeneratePackageData.R")
+  
+  loginfo("Loading ratecard data...", logger = "IDInvoiceCheck.module")
+  rateCard <- loadRateCards("1_Input/Ratecards/JNE_Ratecards.csv")
+  loginfo("Loading OMS data...", logger = "IDInvoiceCheck.module")
+  dateUpdate <- NULL
+  for (file in list.files("1_Input/OMS_Data/")){
+    if(file_ext(file)=="csv") {
+      dateModify <- file.mtime(file.path("1_Input/OMS_Data",file))
+      if (is.null(dateUpdate)){
+        dateUpdate <- dateModify
+      } else if (dateUpdate < dateModify) dateUpdate <- dateModify
+    }
   }
-}
-
-cat("Verify COD invoice data...\r\n")
-paidCODInvoiceData <- loadPaidCODInvoiceData("1_Input/Paid_Invoice/COD")
-CODInvoice <- file.path("1_Input/Invoice","COD")
-for (iFile in list.files(CODInvoice)){
-  if (file_ext(iFile)=="csv"){
-    cat(paste0("--- Processing Invoice File: ",iFile,"\r\n"))
-    invoiceData <- loadCODInvoiceData(file.path(CODInvoice,iFile))
-    cat(paste0("----- Duplicated Invoice Data: ", sum(duplicated(invoiceData$tracking_number)),"\r\n"))
-    
-    TrackingNumber <- unique(OMS$tracking_number)
-    
-    InvoiceMapped <- left_join(invoiceData, PackageDataSummarized,
-                               by=("tracking_number"))
-    
-    OMS_OrderList <- unique(OMS$order_nr)
-    
-    InvoiceMapped %<>%
-      mutate(OrderExisted=ifelse(Order_Nr %in% OMS_OrderList,"Existed","Not-Existed"))
-    
-    paidInvoice <- paidCODInvoiceData$tracking_number
-    paidInvoiceList <- select(paidCODInvoiceData, tracking_number,InvoiceFile)
-    row.names(paidInvoiceList) <- paidInvoiceList$tracking_number
-    
-    InvoiceMapped %<>%
-      mutate(COD_Fee_Calculated=ifelse(payment_method=="CashOnDelivery" &
-                                         !is.na(Delivered_Date),
-                                       0.01*COD_Amount,0)) %>%
-      mutate(COD_Flag=ifelse(COD_Fee_Calculated>=Management_Fee,
-                             "Okay","Not-Okay")) %>%
-      mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
-                                     ifelse(tracking_number %in% paidInvoice,
-                                            "Duplicated",NA))) %>%
-      mutate(DuplicationSource=ifelse(duplicated(tracking_number),"Self_Duplicated",
-                                      ifelse(tracking_number %in% paidInvoice,
-                                             paidInvoiceList[tracking_number,]$InvoiceFile,NA)))
-    
-    
-    InvoiceMapped %<>%
-      select(1:13,OrderExisted,COD_Fee_Calculated,COD_Flag,
-             Duplication_Flag,DuplicationSource,
-             order_nr, business_unit, payment_method,
-             Total_unit_price,COD_Amount, RTS_Date,
-             Shipped_Date, Cancelled_Date, Delivered_Date,
-             tracking_number, shipment_provider_name,
-             Seller_Code, tax_class,
-             shipping_city, shipping_region)
-    
-    
-    ##### Output #####
-    write.csv2(InvoiceMapped, file.path("2_Output/COD",iFile),
-               row.names = FALSE)
+  if(file.exists(file.path("3_Script/3_RData", "OMSData.RData")) &
+     file.mtime(file.path("3_Script/3_RData", "OMSData.RData")) > dateUpdate) {
+    load("3_Script/3_RData/OMSData.RData")
+    load("3_Script/3_RData/PackageDataSummarized.RData")
+  }else{
+    OMSData <- LoadOMSData(OMSDataFolder)
+    PackageDataSummarized <- GeneratePackageData(OMSData)
+    save(OMSData, file = "3_Script/3_RData/OMSData.RData")
+    save(PackageDataSummarized, file = "3_Script/3_RData/PackageDataSummarized.RData")
   }
-}
-
-cat("Done!!! \r\n ")
+  
+  ##### Match Invoice Data with OMS Data #####
+  loginfo("Start Verify Delivery & Insruance invoices data...", logger = "IDInvoiceCheck.module")
+  paidDeliveryInvoiceData <- loadPaidDeliveryInvoiceData("1_Input/Paid_Invoice/DELIVERY_INSURANCE")
+  DeliveryInvoice <- file.path("1_Input/Invoice","DELIVERY_INSURANCE")
+  for (iFile in list.files(DeliveryInvoice)){
+    if (file_ext(iFile)=="csv"){
+      loginfo(paste0("--- Start Processing Invoice File: ",iFile), logger = "IDInvoiceCheck.module")
+      invoiceData <- loadDeliveryInvoiceData(file.path(DeliveryInvoice,iFile))
+      cat(paste0("----- Duplicated Invoice Data: ", sum(duplicated(invoiceData$tracking_number)),"\r\n"))
+      
+      invoiceTracking <- unique(invoiceData$tracking_number)
+      PackageDataToMapped <- filter(PackageDataSummarized,
+                                    tracking_number %in% invoiceTracking)
+      
+      InvoiceMapped <- left_join(invoiceData, PackageDataToMapped,
+                                 by=("tracking_number"))
+      
+      OMS_OrderList <- unique(OMSData$order_nr)
+      
+      InvoiceMapped %<>%
+        mutate(OrderExisted=ifelse(!is.na(order_nr) |
+                                     Order_Nr %in% OMS_OrderList,"Existed","Not-Existed"))
+      
+      ##### Ratecard Calculation #####
+      InvoiceMappedRate <- left_join(InvoiceMapped, rateCard,
+                                     by=c("Destination_Code"="Coding"))
+      
+      paidInvoice <- paidDeliveryInvoiceData$tracking_number
+      paidInvoiceList <- select(paidDeliveryInvoiceData, tracking_number,InvoiceFile)
+      row.names(paidInvoiceList) <- paidInvoiceList$tracking_number
+      
+      InvoiceMappedRate %<>%
+        mutate(FrieghtCost_Calculate=TARIF * Weight,
+               InsuranceFee_Calculate=ifelse(Total_unit_price < 1000000,2500,
+                                             0.0025*Total_unit_price)) %>%
+        mutate(FrieghtCost_Flag=ifelse(FrieghtCost_Calculate==Amount,"Okay","Not-Okay")) %>%
+        mutate(InsuranceFee_Flag=ifelse(InsuranceFee_Calculate==Insurance,"Okay","Not-Okay")) %>%
+        mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
+                                       ifelse(tracking_number %in% paidInvoice,
+                                              "Duplicated","Not_Duplicated"))) %>%
+        mutate(DuplicationSource=ifelse(duplicated(tracking_number),"Self_Duplicated",
+                                        ifelse(tracking_number %in% paidInvoice,
+                                               paidInvoiceList[tracking_number,]$InvoiceFile,"")))
+      InvoiceMappedRate %<>%
+        mutate(Order_Nr = ifelse(is.na(Order_Nr) & !is.na(order_nr),
+                                 order_nr, Order_Nr))
+      InvoiceMappedRate %<>%
+        select(tracking_number, TGL_ENTRY, Order_Nr,
+               Destination_Code, Qty, Weight,
+               GOOD_Values, Insurance, Amount, 
+               Instruction, Service, Status,
+               OrderExisted,FrieghtCost_Calculate,InsuranceFee_Calculate,
+               FrieghtCost_Flag,InsuranceFee_Flag,
+               Duplication_Flag,DuplicationSource,
+               order_nr, business_unit, payment_method,
+               Total_unit_price,COD_Amount, RTS_Date,
+               Shipped_Date, Cancelled_Date, Delivered_Date,
+               tracking_number, shipment_provider_name,
+               Seller_Code, tax_class,
+               shipping_city, shipping_region)
+      
+      fileName <- gsub('\\.csv','',iFile)
+      
+      ##### Output #####
+      write.csv2(InvoiceMappedRate, file.path("2_Output/DELIVERY_INSURANCE",paste0(fileName,'_checked.csv')),
+                 row.names = FALSE)
+      
+      loginfo(paste0("--- Done Processing Invoice File: ",iFile), logger = "IDInvoiceCheck.module")
+    }
+  }
+  
+  loginfo("Start Verify COD invoices data...", logger = "IDInvoiceCheck.module")
+  paidCODInvoiceData <- loadPaidCODInvoiceData("1_Input/Paid_Invoice/COD")
+  CODInvoice <- file.path("1_Input/Invoice","COD")
+  for (iFile in list.files(CODInvoice)){
+    if (file_ext(iFile)=="csv"){
+      loginfo(paste0("--- Start Processing Invoice File: ",iFile), logger = "IDInvoiceCheck.module")
+      invoiceData <- loadCODInvoiceData(file.path(CODInvoice,iFile))
+      cat(paste0("----- Duplicated Invoice Data: ", sum(duplicated(invoiceData$tracking_number)),"\r\n"))
+      
+      invoiceTracking <- unique(invoiceData$tracking_number)
+      PackageDataToMapped <- filter(PackageDataSummarized,
+                                    tracking_number %in% invoiceTracking)
+      
+      InvoiceMapped <- left_join(invoiceData, PackageDataToMapped,
+                                 by=("tracking_number"))
+      
+      OMS_OrderList <- unique(OMSData$order_nr)
+      
+      InvoiceMapped %<>%
+        mutate(OrderExisted=ifelse(!is.na(order_nr) |
+                                     Order_Nr %in% OMS_OrderList,"Existed","Not-Existed"))
+      
+      paidInvoice <- paidCODInvoiceData$tracking_number
+      paidInvoiceList <- select(paidCODInvoiceData, tracking_number,InvoiceFile)
+      row.names(paidInvoiceList) <- paidInvoiceList$tracking_number
+      
+      InvoiceMapped %<>%
+        mutate(COD_Fee_Calculated=ifelse(payment_method=="CashOnDelivery" &
+                                           !is.na(Delivered_Date),
+                                         0.01*COD_Amount,0)) %>%
+        mutate(COD_Flag=ifelse(COD_Fee_Calculated>=Management_Fee,
+                               "Okay","Not-Okay")) %>%
+        mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
+                                       ifelse(tracking_number %in% paidInvoice,
+                                              "Duplicated",NA))) %>%
+        mutate(DuplicationSource=ifelse(duplicated(tracking_number),"Self_Duplicated",
+                                        ifelse(tracking_number %in% paidInvoice,
+                                               paidInvoiceList[tracking_number,]$InvoiceFile,NA)))
+      
+      InvoiceMapped %<>%
+        mutate(Order_Nr = ifelse(is.na(Order_Nr) & !is.na(order_nr),
+                                 order_nr, Order_Nr))
+      InvoiceMapped %<>%
+        select(tracking_number, TGL_ENTRY, Order_Nr,
+               Destination_Code, Qty, Weight,
+               GOOD_Values, Management_Fee, Instruction, 
+               Service, Status, OrderExisted,
+               COD_Fee_Calculated, COD_Flag,
+               Duplication_Flag, DuplicationSource,
+               order_nr, business_unit, payment_method,
+               Total_unit_price,COD_Amount, RTS_Date,
+               Shipped_Date, Cancelled_Date, Delivered_Date,
+               tracking_number, shipment_provider_name,
+               Seller_Code, tax_class,
+               shipping_city, shipping_region)
+      
+      ##### Output #####
+      write.csv2(InvoiceMapped, file.path("2_Output/COD",iFile),
+                 row.names = FALSE)
+      loginfo(paste0("--- Done Processing Invoice File: ",iFile), logger = "IDInvoiceCheck.module")
+    }
+  }
+  
+  loginfo(paste0("--- Done!!!"), logger = "IDInvoiceCheck.module")
+},error = function(err){
+  logerror(err, logger = "IDInvoiceCheck.module")
+})

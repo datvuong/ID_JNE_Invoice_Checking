@@ -22,8 +22,8 @@ loadDeliveryInvoiceData <- function(invoiceDeliveryFile){
                                            "Destination_Code","Qty","Weight",
                                            "GOOD_Values","Insurance","Amount",
                                            "Instruction","Service","Status"),
-                             colClasses = c("myTrackingNumber","myDate","myInteger",
-                                            "character","myInteger","myNumeric",
+                             colClasses = c("myTrackingNumber","myDate","myNumeric",
+                                            "character","myNumeric","myNumeric",
                                             "myNumeric","myNumeric","myNumeric",
                                             "character","character","character"))
     
@@ -58,8 +58,8 @@ loadCODInvoiceData <- function(invoiceCODFile){
                                            "Destination_Code","Qty","Weight",
                                            "GOOD_Values","Management_Fee","Instruction",
                                            "Service","Status"),
-                             colClasses = c("myTrackingNumber","myDate","myInteger",
-                                            "character","myInteger","myNumeric",
+                             colClasses = c("myTrackingNumber","myDate","myNumeric",
+                                            "character","myNumeric","myNumeric",
                                             "myNumeric","myNumeric","myNumeric",
                                             "character","character"))
     currentFile %<>%
