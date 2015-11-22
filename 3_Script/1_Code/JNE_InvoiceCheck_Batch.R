@@ -8,15 +8,14 @@ suppressMessages({
   library(logging)
 })
 
-basicConfig()
 addHandler(writeToFile, logger="IDInvoiceCheck",
            file=file.path("3_Script/2_Log",
                           paste0("ID_InvoiceChecking",dateReport,".csv")))
+addHandler(writeToConsole , logger="IDInvoiceCheck.Log")
 
 tryCatch({
   
-  loginfo("Initial Setup", logger = "IDInvoiceCheck.module")
-  
+  loginfo("Initial Setup", logger = "IDInvoiceCheck")
   
   source("3_Script/1_Code/fn_loadRatecards.R")
   source("3_Script/1_Code/fn_loadInvoiceData.R")
@@ -24,9 +23,9 @@ tryCatch({
   source("3_Script/1_Code/fn_loadPaidInvoice.R")
   source("3_Script/1_Code/fn_GeneratePackageData.R")
   
-  loginfo("Loading ratecard data...", logger = "IDInvoiceCheck.module")
+  loginfo("Loading ratecard data...", logger = "IDInvoiceCheck.Log")
   rateCard <- loadRateCards("1_Input/Ratecards/JNE_Ratecards.csv")
-  loginfo("Loading OMS data...", logger = "IDInvoiceCheck.module")
+  loginfo("Loading OMS data...", logger = "IDInvoiceCheck.Log")
   dateUpdate <- NULL
   for (file in list.files("1_Input/OMS_Data/")){
     if(file_ext(file)=="csv") {
@@ -48,14 +47,18 @@ tryCatch({
   }
   
   ##### Match Invoice Data with OMS Data #####
-  loginfo("Start Verify Delivery & Insruance invoices data...", logger = "IDInvoiceCheck.module")
   paidDeliveryInvoiceData <- loadPaidDeliveryInvoiceData("1_Input/Paid_Invoice/DELIVERY_INSURANCE")
+  loginfo("Start Verify Delivery & Insruance invoices data...", logger = "IDInvoiceCheck.Log")
   DeliveryInvoice <- file.path("1_Input/Invoice","DELIVERY_INSURANCE")
+  filesCount <- sum(grepl("\\.csv",list.files(DeliveryInvoice)))
+  pb <- txtProgressBar(min=0,max=filesCount, style = 3)
+  iProgress <- 0
+  setTxtProgressBar(pb, iProgress)
   for (iFile in list.files(DeliveryInvoice)){
     if (file_ext(iFile)=="csv"){
-      loginfo(paste0("--- Start Processing Invoice File: ",iFile), logger = "IDInvoiceCheck.module")
+      loginfo(paste0("--- Start Processing Invoice File: ",iFile), logger = "IDInvoiceCheck")
       invoiceData <- loadDeliveryInvoiceData(file.path(DeliveryInvoice,iFile))
-      cat(paste0("----- Duplicated Invoice Data: ", sum(duplicated(invoiceData$tracking_number)),"\r\n"))
+      #cat(paste0("----- Duplicated Invoice Data: ", sum(duplicated(invoiceData$tracking_number)),"\r\n"))
       
       invoiceTracking <- unique(invoiceData$tracking_number)
       PackageDataToMapped <- filter(PackageDataSummarized,
@@ -114,18 +117,24 @@ tryCatch({
       write.csv2(InvoiceMappedRate, file.path("2_Output/DELIVERY_INSURANCE",paste0(fileName,'_checked.csv')),
                  row.names = FALSE)
       
-      loginfo(paste0("--- Done Processing Invoice File: ",iFile), logger = "IDInvoiceCheck.module")
+      loginfo(paste0("--- Done Processing Invoice File: ",iFile), logger = "IDInvoiceCheck")
+      iProgress <- iProgress + 1
+      setTxtProgressBar(pb, iProgress)
     }
   }
-  
-  loginfo("Start Verify COD invoices data...", logger = "IDInvoiceCheck.module")
+  cat("\r\n")
+  loginfo("Start Verify COD invoices data...", logger = "IDInvoiceCheck.Log")
   paidCODInvoiceData <- loadPaidCODInvoiceData("1_Input/Paid_Invoice/COD")
   CODInvoice <- file.path("1_Input/Invoice","COD")
+  filesCount <- sum(grepl("\\.csv",list.files(CODInvoice)))
+  pb <- txtProgressBar(min=0,max=filesCount, style = 3)
+  iProgress <- 0
+  setTxtProgressBar(pb, iProgress)
   for (iFile in list.files(CODInvoice)){
     if (file_ext(iFile)=="csv"){
-      loginfo(paste0("--- Start Processing Invoice File: ",iFile), logger = "IDInvoiceCheck.module")
+      loginfo(paste0("--- Start Processing Invoice File: ",iFile), logger = "IDInvoiceCheck")
       invoiceData <- loadCODInvoiceData(file.path(CODInvoice,iFile))
-      cat(paste0("----- Duplicated Invoice Data: ", sum(duplicated(invoiceData$tracking_number)),"\r\n"))
+      #cat(paste0("----- Duplicated Invoice Data: ", sum(duplicated(invoiceData$tracking_number)),"\r\n"))
       
       invoiceTracking <- unique(invoiceData$tracking_number)
       PackageDataToMapped <- filter(PackageDataSummarized,
@@ -177,11 +186,16 @@ tryCatch({
       ##### Output #####
       write.csv2(InvoiceMapped, file.path("2_Output/COD",iFile),
                  row.names = FALSE)
-      loginfo(paste0("--- Done Processing Invoice File: ",iFile), logger = "IDInvoiceCheck.module")
+      loginfo(paste0("--- Done Processing Invoice File: ",iFile), logger = "IDInvoiceCheck")
+      iProgress <- iProgress + 1
+      setTxtProgressBar(pb, iProgress)
     }
   }
-  
-  loginfo(paste0("--- Done!!!"), logger = "IDInvoiceCheck.module")
+  cat("\r\n")
+  loginfo(paste0("--- Done!!!"), logger = "IDInvoiceCheck.Log")
+  loginfo(paste0(warnings()), logger = "IDInvoiceCheck")
 },error = function(err){
-  logerror(err, logger = "IDInvoiceCheck.module")
+  logerror(err, logger = "IDInvoiceCheck")
+  logerror("PLease send 3_Script/Log folder to Regional OPS BI for additional support",
+           logger = "IDInvoiceCheck.Log")
 })
