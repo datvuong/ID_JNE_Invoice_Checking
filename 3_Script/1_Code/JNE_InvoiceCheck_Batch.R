@@ -83,9 +83,9 @@ tryCatch({
       
       InvoiceMappedRate %<>%
         mutate(FrieghtCost_Calculate=TARIF * Weight,
-               InsuranceFee_Calculate=ifelse(Total_unit_price < 1000000,2500,
-                                             0.0025*Total_unit_price)) %>%
-        mutate(FrieghtCost_Flag=ifelse(FrieghtCost_Calculate==Amount,"Okay","Not-Okay")) %>%
+               InsuranceFee_Calculate=ifelse(COD_Amount < 1000000,2500,
+                                             0.0025 * COD_Amount)) %>%
+        mutate(FrieghtCost_Flag=ifelse(abs(FrieghtCost_Calculate - Amount) < 1,"Okay","Not-Okay")) %>%
         mutate(InsuranceFee_Flag=ifelse(InsuranceFee_Calculate==Insurance,"Okay","Not-Okay")) %>%
         mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
                                        ifelse(tracking_number %in% paidInvoice,
@@ -156,15 +156,15 @@ tryCatch({
       InvoiceMapped %<>%
         mutate(COD_Fee_Calculated=ifelse(payment_method=="CashOnDelivery" &
                                            !is.na(Delivered_Date),
-                                         0.01*COD_Amount,0)) %>%
-        mutate(COD_Flag=ifelse(COD_Fee_Calculated>=Management_Fee,
-                               "Okay","Not-Okay")) %>%
+                                         0.01 * COD_Amount,0)) %>%
+        mutate(COD_Flag=ifelse(COD_Fee_Calculated >= Management_Fee,
+                               "Okay", "Not-Okay")) %>%
         mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
                                        ifelse(tracking_number %in% paidInvoice,
-                                              "Duplicated",NA))) %>%
+                                              "Duplicated","Not_Duplicated"))) %>%
         mutate(DuplicationSource=ifelse(duplicated(tracking_number),"Self_Duplicated",
                                         ifelse(tracking_number %in% paidInvoice,
-                                               paidInvoiceList[tracking_number,]$InvoiceFile,NA)))
+                                               paidInvoiceList[tracking_number,]$InvoiceFile,"Not_Duplicated")))
       
       InvoiceMapped %<>%
         mutate(Order_Nr = ifelse(is.na(Order_Nr) & !is.na(order_nr),
