@@ -1,4 +1,4 @@
-UpdateSOIData <- function(currentSOIData, upToDate = Sys.Date(), 
+UpdateSOIData <- function(dateBegin = NULL, 
                           server, username, password) {
   suppressMessages({
     require(dplyr)
@@ -15,35 +15,46 @@ UpdateSOIData <- function(currentSOIData, upToDate = Sys.Date(),
     
     source("3_Script/1_Code/01_Loading/ExtractSOIData.R")
     
-    hasHistoryData = TRUE
-    upToDate <- as.Date(upToDate, format("%Y-%m-%d"))
-    
-    if (is.null(currentSOIData)) {
-      hasHistoryData = FALSE
-      curentLastDate = upToDate - 40
+    if (file.exists("1_Input/RData/soiData.RData")) {
+      load("1_Input/RData/soiData.RData")
     } else {
-      curentLastDate <- max(currentSOIData$item_created_at,
-                            na.rm = TRUE)
+      soiData <- NULL
     }
     
-    newSOIData <- ExtractSOIData(server = serverIP, username = user, 
-                                     password = password,
-                                     dateBegin = curentLastDate, dateEnd = upToDate,
-                                     batchSize = 25000)
-    
-    newSOIData %<>%
-      mutate(item_created_at = as.POSIXct(item_created_at, "%Y-m-%d %H:%M:%S"))
-
-    if (hasHistoryData) {
-      newID <- newSOIData$id_sales_order_item
-      currentSOIData %<>%
-        filter(!(id_sales_order_item %in% newID))
-      
-      soiData <- rbind(currentSOIData, newSOIData)
-      
-    } else {
-      soiData <- newSOIData
+    if (is.null(dateBegin)) {
+      if (is.null(soiData)) {
+        dateBegin <- Sys.Date() - 40
+      } else {
+        soiData %<>%
+          mutate(item_updated_at = as.POSIXct(item_updated_at, "%Y-m-%d %H:%M:%S"))
+        
+        dateBegin <- max(soiData$item_updated_at)
+      }
     }
+    dateBegin <- as.Date(dateBegin, format = "%Y-%m-%d")
+    dateEnd <- min(dateBegin + 10, Sys.Date())
+    
+    loginfo(paste("Function", functionName, "Update Data Up to", dateEnd), logger = consoleLog)
+    soiData <- ExtractSOIData(soiData,
+                              server = serverIP, username = user, 
+                              password = password,
+                              dateBegin = dateBegin, dateEnd = dateEnd,
+                              batchSize = 200000)
+    
+    soiData %<>%
+      mutate(item_created_at = as.POSIXct(item_created_at, "%Y-m-%d %H:%M:%S"),
+             item_updated_at = as.POSIXct(item_updated_at, "%Y-m-%d %H:%M:%S"))
+    
+    latestUpdatedTime <- as.Date(max(soiData$item_updated_at))
+    soiData %<>%
+      filter(item_updated_at >= (latestUpdatedTime - 190))
+    
+    soiData %<>%
+      arrange(desc(item_updated_at)) %>%
+      filter(!duplicated(id_sales_order_item))
+    
+    save(soiData, file = "1_Input/RData/soiData.RData",
+         compress = TRUE)
     
     for (iWarn in warnings()){
       logwarn(paste(functionName, iWarn), logger = reportName)

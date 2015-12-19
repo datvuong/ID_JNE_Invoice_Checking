@@ -7,37 +7,20 @@ source("3_Script/1_Code/01_Loading/UpdateSOITimeStamp.R")
 source("3_Script/1_Code/01_Loading/UpdateSOIBaseData.R")
 source("3_Script/1_Code/01_Loading/BuildPackageData.R")
 
-if (file.exists("1_Input/RData/soiData.RData")) {
-  load("1_Input/RData/soiData.RData")
-} else {
-  soiData <- NULL
-}
-if (file.exists("1_Input/RData/packageData.RData")) {
-  load("1_Input/RData/packageData.RData")
-} else {
-  packageData <- NULL
-}
-if (file.exists("1_Input/RData/soiData.RData")) {
-  load("1_Input/RData/soiHistoryData.RData")
-} else {
-  soiHistoryData <- NULL
-}
-
-soiData <- UpdateSOIData(soiData, upToDate = Sys.Date(), 
-                         server = serverIP, username = user, password = password)
-save(soiData, file = "1_Input/RData/soiData.RData")
-
-packageData <- UpdatePackageData(packageData, upToDate = Sys.Date(), 
-                                 server = serverIP, username = user, password = password)
-save(packageData, file = "1_Input/RData/packageData.RData")
-
-soiHistoryData <- UpdateSOIHistoryData(soiHistoryData, upToDate = "2015-12-01", 
+loginfo("Update SOI Data", logger = consoleLog)
+soiData <- UpdateSOIData(dateBegin = NULL, server = serverIP,
+                         username = user, password = password)
+loginfo("Update Pacakge Data", logger = consoleLog)
+packageData <- UpdatePackageData(dateBegin = NULL, server = serverIP,
+                                 username = user, password = password)
+loginfo("Update History Data", logger = consoleLog)
+soiHistoryData <- UpdateSOIHistoryData(dateBegin = NULL,
                                        server = serverIP, username = user, password = password)
-save(soiHistoryData, file = "1_Input/RData/soiHistoryData.RData")
 
+loginfo("Consolidate OMS Data", logger = consoleLog)
 soiTimestampData <- UpdateSOITimeStamp(soiHistoryData)
-
 soiBasedData <- UpdateSOIBaseData(soiData, packageData, soiTimestampData)
-
 packageBaseData <- BuildPackageData(soiBasedData)
-save(packageData, file = "1_Input/RData/packageBaseData.RData")
+save(packageBaseData, file = "1_Input/RData/packageBaseData.RData",
+     compress = TRUE)
+loginfo("Done", logger = consoleLog)

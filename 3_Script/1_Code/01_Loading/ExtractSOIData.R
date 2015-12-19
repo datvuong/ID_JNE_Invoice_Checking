@@ -1,5 +1,7 @@
-ExtractSOIData <- function(server, username, password, dateBegin, dateEnd,
-                           batchSize = 10000) {
+ExtractSOIData <- function(soiData,
+                           server, username, password, 
+                           dateBegin, dateEnd, batchSize = 10000) {
+  
   suppressMessages({
     require(dplyr)
     require(tools)
@@ -31,7 +33,7 @@ ExtractSOIData <- function(server, username, password, dateBegin, dateEnd,
              LEFT JOIN screport.seller seller ON scsoi.fk_seller = seller.id_seller 
              WHERE 
              (
-             soi.created_at between '", dateBegin, "' and '", dateEnd,"'
+             soi.updated_at between '", dateBegin, "' and '", dateEnd,"'
              )")
     
     rs <- dbSendQuery(conn, rowCountQuery)
@@ -45,6 +47,7 @@ ExtractSOIData <- function(server, username, password, dateBegin, dateEnd,
   soi.bob_id_sales_order_item, 
   scsoi.id_sales_order_item SC_SOI_ID, 
   soi.created_at item_created_at,
+  soi.updated_at item_updated_at,
   if(
     soi.fk_marketplace_merchant is null, 
     'Retail', 'MP'
@@ -74,7 +77,7 @@ FROM
   LEFT JOIN screport.seller seller ON scsoi.fk_seller = seller.id_seller 
 WHERE 
   (
-    soi.created_at between '", dateBegin, "' and '", dateEnd,"'
+    soi.updated_at between '", dateBegin, "' and '", dateEnd,"'
   )")
     
     print(rowCount)
@@ -82,20 +85,27 @@ WHERE
     pb <- txtProgressBar(min=0, max=rowCount, style = 3)
     iProgress <- 0
     setTxtProgressBar(pb, iProgress)
-    
-    soiHis <- dbFetch(rs, n = batchSize)
-    iProgress <- nrow(soiHis)
-    setTxtProgressBar(pb, iProgress)
-    while (nrow(soiHis) < rowCount) {
+  
+    rowFetched <- 0    
+    while (rowFetched < rowCount) {
       temp <- dbFetch(rs, n = batchSize)
-      soiHis <- rbind(soiHis,temp)
+      rowFetched <- rowFetched + nrow(temp)
+      if (is.null(soiData)) {
+        soiData <- temp
+      } else {
+        soiData <- rbind(soiData,temp)
+      }
+        
       
-      iProgress <- nrow(soiHis)
+      save(soiData, file = "1_Input/RData/soiData.RData",
+           compress = TRUE)
+      
+      iProgress <- rowFetched
       setTxtProgressBar(pb, iProgress)
     }
 
     cat("\r\n")
-    print(nrow(soiHis))
+    print(nrow(soiData))
     dbClearResult(rs)
     rm(temp)
     
@@ -103,7 +113,8 @@ WHERE
       logwarn(paste(functionName, iWarn), logger = reportName)
     }
     assign("last.warning", NULL, envir = baseenv())
-    soiHis
+    
+    soiData
     
   }, error = function(err) {
     logerror(paste(functionName, err, sep = " - "), logger = consoleLog)

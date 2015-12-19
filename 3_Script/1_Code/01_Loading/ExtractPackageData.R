@@ -1,5 +1,6 @@
-ExtractPackageData <- function(server, username, password, dateBegin, dateEnd,
-                           batchSize = 10000) {
+ExtractPackageData <- function(packageData, 
+                               server, username, password, dateBegin, dateEnd,
+                               batchSize = 200000) {
   suppressMessages({
     require(dplyr)
     require(tools)
@@ -27,7 +28,7 @@ ExtractPackageData <- function(server, username, password, dateBegin, dateEnd,
              INNER JOIN oms_live.oms_shipment_provider deliveryCompany ON pkgDispatch.fk_shipment_provider = deliveryCompany.id_shipment_provider
              WHERE 
              (
-             pkgDispatch.created_at between '", dateBegin, "' and '", dateEnd,"'
+             pkgDispatch.updated_at between '", dateBegin, "' and '", dateEnd,"'
              )")
     
     rs <- dbSendQuery(conn, rowCountQuery)
@@ -39,6 +40,7 @@ ExtractPackageData <- function(server, username, password, dateBegin, dateEnd,
   	           pkgItem.fk_sales_order_item,
                pkgDispatch.id_package_dispatching,
                pkgDispatch.created_at tracking_created_at,
+               pkgDispatch.updated_at tracking_updated_at,
                pkgDispatch.tracking_number, 
                pkg.package_number, 
                deliveryCompany.shipment_provider_name
@@ -48,7 +50,7 @@ ExtractPackageData <- function(server, username, password, dateBegin, dateEnd,
                INNER JOIN oms_live.oms_shipment_provider deliveryCompany ON pkgDispatch.fk_shipment_provider = deliveryCompany.id_shipment_provider
                WHERE 
                (
-               pkgDispatch.created_at between '", dateBegin, "' and '", dateEnd,"'
+               pkgDispatch.updated_at between '", dateBegin, "' and '", dateEnd,"'
                )")
     
     print(rowCount)
@@ -57,19 +59,23 @@ ExtractPackageData <- function(server, username, password, dateBegin, dateEnd,
     iProgress <- 0
     setTxtProgressBar(pb, iProgress)
     
-    soiHis <- dbFetch(rs, n = batchSize)
-    iProgress <- nrow(soiHis)
-    setTxtProgressBar(pb, iProgress)
-    while (nrow(soiHis) < rowCount) {
+    rowFetched <- 0    
+    while (rowFetched < rowCount) {
       temp <- dbFetch(rs, n = batchSize)
-      soiHis <- rbind(soiHis,temp)
+      rowFetched <- rowFetched + nrow(temp)
+      if (is.null(packageData)) {
+        packageData <- temp
+      } else {
+        packageData <- rbind(packageData,temp)
+      }
+      save(packageData, file = "1_Input/RData/packageData.RData",
+           compress = TRUE)
       
-      iProgress <- nrow(soiHis)
+      iProgress <- rowFetched
       setTxtProgressBar(pb, iProgress)
     }
     
     cat("\r\n")
-    print(nrow(soiHis))
     dbClearResult(rs)
     rm(temp)
     
@@ -77,7 +83,8 @@ ExtractPackageData <- function(server, username, password, dateBegin, dateEnd,
       logwarn(paste(functionName, iWarn), logger = reportName)
     }
     assign("last.warning", NULL, envir = baseenv())
-    soiHis
+    
+    packageData
     
   }, error = function(err) {
     logerror(paste(functionName, err, sep = " - "), logger = consoleLog)

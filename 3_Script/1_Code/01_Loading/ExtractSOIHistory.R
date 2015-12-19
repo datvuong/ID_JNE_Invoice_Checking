@@ -1,5 +1,6 @@
-ExtractSOIHistory <- function(server, username, password, dateBegin, dateEnd,
-                              batchSize = 10000) {
+ExtractSOIHistory <- function(soiHistoryData,
+                              server, username, password, dateBegin, dateEnd,
+                              batchSize = 100000) {
   suppressMessages({
     require(dplyr)
     require(tools)
@@ -41,32 +42,35 @@ ExtractSOIHistory <- function(server, username, password, dateBegin, dateEnd,
     iProgress <- 0
     setTxtProgressBar(pb, iProgress)
     
-    
-    soiHis <- dbFetch(rs, n = batchSize)
-    iProgress <- nrow(soiHis)
-    setTxtProgressBar(pb, iProgress)
-    
-    for (i in 1:round(((rowCount / batchSize) + 10), digits = 0)) {
+    rowFetched <- 0    
+    while (rowFetched < rowCount) {
       temp <- dbFetch(rs, n = batchSize)
-      soiHis <- rbind(soiHis,temp)
+      rowFetched <- rowFetched + nrow(temp)
+      if (is.null(soiHistoryData)) {
+        soiHistoryData <- temp
+      } else {
+        soiHistoryData <- rbind(soiHistoryData,temp)
+      }
       
-      dbHasCompleted(rs)
       
-      iProgress <- nrow(soiHis)
+      save(soiHistoryData, file = "1_Input/RData/soiHistoryData.RData",
+           compress = TRUE)
+      
+      iProgress <- rowFetched
       setTxtProgressBar(pb, iProgress)
     }
     
     
     cat("\r\n")
-    print(nrow(soiHis))
     dbClearResult(rs)
     rm(temp)
     
     for (iWarn in warnings()){
       logwarn(paste(functionName, iWarn), logger = reportName)
     }
+    
     assign("last.warning", NULL, envir = baseenv())
-    soiHis
+    soiHistoryData
     
   }, error = function(err) {
     logerror(paste(functionName, err, sep = " - "), logger = consoleLog)
