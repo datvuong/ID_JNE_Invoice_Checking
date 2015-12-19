@@ -1,17 +1,4 @@
-dateReport <- format(Sys.time(), "%Y%m%d%H%M")
-
-suppressMessages({
-  library(dplyr)
-  library(tidyr)
-  library(magrittr)
-  library(lubridate)
-  library(logging)
-})
-
-addHandler(writeToFile, logger="IDInvoiceCheck",
-           file=file.path("3_Script/2_Log",
-                          paste0("ID_InvoiceChecking",dateReport,".csv")))
-addHandler(writeToConsole , logger="IDInvoiceCheck.Log")
+source("3_Script/1_Code/00_init.R")
 
 tryCatch({
   
@@ -85,8 +72,8 @@ tryCatch({
         mutate(FrieghtCost_Calculate=TARIF * Weight,
                InsuranceFee_Calculate=ifelse(COD_Amount < 1000000,2500,
                                              0.0025 * COD_Amount)) %>%
-        mutate(FrieghtCost_Flag=ifelse(abs(FrieghtCost_Calculate - Amount) < 1,"Okay","Not-Okay")) %>%
-        mutate(InsuranceFee_Flag=ifelse(InsuranceFee_Calculate==Insurance,"Okay","Not-Okay")) %>%
+        mutate(FrieghtCost_Flag=ifelse(Amount - FrieghtCost_Calculate < 1,"Okay","Not-Okay")) %>%
+        mutate(InsuranceFee_Flag=ifelse(Insurance - InsuranceFee_Calculate < 1,"Okay","Not-Okay")) %>%
         mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
                                        ifelse(tracking_number %in% paidInvoice,
                                               "Duplicated","Not_Duplicated"))) %>%
