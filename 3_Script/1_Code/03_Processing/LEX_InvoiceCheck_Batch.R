@@ -6,8 +6,8 @@ tryCatch({
   
   source("3_Script/1_Code/01_Loading/Load_Invoice_Data.R")
   
-  load("packageBaseData")
-  invoiceData <- LoadInvoiceData("1_Input/LEX/01_Invoice/")
+  load("1_Input/RData/packageBaseData.RData")
+  invoiceData <- LoadInvoiceData("1_Input/LEX/01_Invoice")
   
   mergedOMSData <- left_join(invoiceData,
                              packageBaseData,
@@ -23,10 +23,12 @@ tryCatch({
   for (iFile in invoiceFiles) {
     fileName <- gsub(".xls.*$", "_checked.csv", iFile)
     fileData <-  as.data.frame(mergedOMSData %>% filter(rawFile == iFile))
-    write.csv2(fileData, file.path("2_Output/JNE", fileName),
+    write.csv2(fileData, file.path("2_Output/LEX", fileName),
                row.names = FALSE)
   }
   
+  
+  flog.info("Done", name = "IDInvoiceCheck")
   #   
   #   
   #   ##### Match Invoice Data with OMS Data #####
