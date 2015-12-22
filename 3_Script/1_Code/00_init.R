@@ -6,7 +6,6 @@ suppressMessages({
   library(tidyr)
   library(magrittr)
   library(lubridate)
-  library(logging)
   library(futile.logger)
   library(XLConnect)
 })
