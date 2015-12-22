@@ -5,6 +5,7 @@ suppressMessages({
   library(dplyr)
   library(tidyr)
   library(magrittr)
+  library(methods)
   library(lubridate)
   library(futile.logger)
   library(XLConnect)

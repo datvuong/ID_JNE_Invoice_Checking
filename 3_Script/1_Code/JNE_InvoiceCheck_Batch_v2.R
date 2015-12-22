@@ -28,8 +28,10 @@ tryCatch({
   paidInvoiceList <- NULL
   
   if (!is.null(paidInvoiceData)) {
-    paidInvoice <- paidDeliveryInvoiceData$tracking_number
-    paidInvoiceList <- select(paidInvoiceData, tracking_number,InvoiceFile)
+    paidInvoice <- paidInvoiceData$tracking_number
+    paidInvoiceList <- select(paidInvoiceData, tracking_number, rawFile)
+    paidInvoiceList <- paidInvoiceList %>%
+      filter(!duplicated(tracking_number))
     row.names(paidInvoiceList) <- paidInvoiceList$tracking_number
   }
   
@@ -82,7 +84,7 @@ tryCatch({
   }
   
 },error = function(err){
-  flog.error(err, logger = reportName)
+  flog.error(err, name = reportName)
   flog.error("PLease send 3_Script/Log folder to Regional OPS BI for additional support",
              name = reportName)
 })
