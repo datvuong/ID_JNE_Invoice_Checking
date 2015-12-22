@@ -2,7 +2,7 @@ source("3_Script/1_Code/00_init.R")
 
 tryCatch({
   
-  flog.info("Initial Setup", name = "IDInvoiceCheck")
+  flog.info("Initial Setup", name = reportName)
   
   source("3_Script/1_Code/01_Loading/Load_Invoice_Data.R")
   source("3_Script/1_Code/fn_loadRatecards.R")
@@ -12,6 +12,7 @@ tryCatch({
   rateCard <- loadRateCards("1_Input/JNE/02_Ratecards/JNE_Ratecards.csv")
   paidInvoiceData <- LoadInvoiceData("1_Input/JNE/03_Paid_Invoice/")
   
+  gc()
   mergedOMSData <- left_join(invoiceData,
                              packageBaseData,
                              by = "tracking_number")
@@ -77,10 +78,10 @@ tryCatch({
   }
   
 },error = function(err){
-  flog.error(err, logger = "IDInvoiceCheck")
+  flog.error(err, logger = reportName)
   flog.error("PLease send 3_Script/Log folder to Regional OPS BI for additional support",
-             logger = "IDInvoiceCheck.Log")
+             name = reportName)
 })
 
 
-flog.info("Done", name = "IDInvoiceCheck")
+flog.info("Done", name = reportName)
