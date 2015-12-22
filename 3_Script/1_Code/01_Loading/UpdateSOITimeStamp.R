@@ -9,7 +9,7 @@ UpdateSOITimeStamp <- function(soiHistoryData) {
   })
   
   functionName <- "UpdateSOITimeStamp"
-  loginfo(paste("Function", functionName, "started"), logger = reportName)
+  flog.info(paste("Function", functionName, "started"), name = reportName)
   
   output <- tryCatch({
     
@@ -37,16 +37,12 @@ UpdateSOITimeStamp <- function(soiHistoryData) {
       mutate(rts = ifelse(is.na(rts_wh), rts_ds, rts_wh)) %>%
       select(-c(rts_wh, rts_ds))
     
-    for (iWarn in warnings()){
-      logwarn(paste(functionName, iWarn), logger = reportName)
-    }
-    
     soiTimestampData
     
   }, error = function(err) {
-    logerror(paste(functionName, err, sep = " - "), logger = consoleLog)
+    flog.info(paste(functionName, err, sep = " - "), name = reportName)
   }, finally = {
-    loginfo(paste(functionName, "ended"), logger = reportName)
+    flog.info(paste(functionName, "ended"), name = reportName)
   })
   
   output

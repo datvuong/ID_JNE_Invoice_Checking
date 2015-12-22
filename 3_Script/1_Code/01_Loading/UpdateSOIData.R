@@ -1,4 +1,4 @@
-UpdateSOIData <- function(dateBegin = NULL, 
+UpdateSOIData <- function(dateBegin = NULL, extractLength = 10,
                           server, username, password) {
   suppressMessages({
     require(dplyr)
@@ -9,7 +9,7 @@ UpdateSOIData <- function(dateBegin = NULL,
   })
   
   functionName <- "UpdateSOIData"
-  loginfo(paste("Function", functionName, "started"), logger = reportName)
+  flog.info(paste("Function", functionName, "started"), name = reportName)
   
   output <- tryCatch({
     
@@ -23,7 +23,7 @@ UpdateSOIData <- function(dateBegin = NULL,
     
     if (is.null(dateBegin)) {
       if (is.null(soiData)) {
-        dateBegin <- Sys.Date() - 40
+        dateBegin <- Sys.Date() - 190
       } else {
         soiData %<>%
           mutate(item_updated_at = as.POSIXct(item_updated_at, "%Y-m-%d %H:%M:%S"))
@@ -32,9 +32,10 @@ UpdateSOIData <- function(dateBegin = NULL,
       }
     }
     dateBegin <- as.Date(dateBegin, format = "%Y-%m-%d")
-    dateEnd <- min(dateBegin + 10, Sys.Date())
+    dateEnd <- min(dateBegin + extractLength, Sys.Date())
     
-    loginfo(paste("Function", functionName, "Update Data Up to", dateEnd), logger = consoleLog)
+    flog.info(paste("Function", functionName, "Update Data Up to", dateEnd), name = reportName)
+    
     soiData <- ExtractSOIData(soiData,
                               server = serverIP, username = user, 
                               password = password,
@@ -47,7 +48,7 @@ UpdateSOIData <- function(dateBegin = NULL,
     
     latestUpdatedTime <- as.Date(max(soiData$item_updated_at))
     soiData %<>%
-      filter(item_updated_at >= (latestUpdatedTime - 190))
+      filter(item_updated_at >= as.POSIXct(latestUpdatedTime - 190))
     
     soiData %<>%
       arrange(desc(item_updated_at)) %>%
@@ -56,16 +57,12 @@ UpdateSOIData <- function(dateBegin = NULL,
     save(soiData, file = "1_Input/RData/soiData.RData",
          compress = TRUE)
     
-    for (iWarn in warnings()){
-      logwarn(paste(functionName, iWarn), logger = reportName)
-    }
-    
     soiData
     
   }, error = function(err) {
-    logerror(paste(functionName, err, sep = " - "), logger = consoleLog)
+    flog.error(paste(functionName, err, sep = " - "), name = reportName)
   }, finally = {
-    loginfo(paste(functionName, "ended"), logger = reportName)
+    flog.info(paste(functionName, "ended"), name = reportName)
   })
   
   output

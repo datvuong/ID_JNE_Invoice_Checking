@@ -1,15 +1,15 @@
-UpdateSOIHistoryData <- function(dateBegin = NULL,
+UpdateSOIHistoryData <- function(dateBegin = NULL, extractLength = 10,
                                  server, username, password) {
   suppressMessages({
     require(dplyr)
     require(tools)
     require(magrittr)
     require(methods)
-    require(logging)
+    require(futile.logger)
   })
   
   functionName <- "UpdateSOIHistoryData"
-  loginfo(paste("Function", functionName, "started"), logger = reportName)
+  flog.info(paste("Function", functionName, "started"), name = reportName)
   
   output <- tryCatch({
     
@@ -18,12 +18,12 @@ UpdateSOIHistoryData <- function(dateBegin = NULL,
     if (file.exists("1_Input/RData/soiHistoryData.RData")) {
       load("1_Input/RData/soiHistoryData.RData")
     } else {
-      packageData <- NULL
+      soiHistoryData <- NULL
     }
     
     if (is.null(dateBegin)) {
       if (is.null(soiHistoryData)) {
-        dateBegin <- Sys.Date() - 40
+        dateBegin <- Sys.Date() - 190
       } else {
         soiHistoryData %<>%
           mutate(created_at = as.POSIXct(created_at, "%Y-m-%d %H:%M:%S"))
@@ -33,14 +33,14 @@ UpdateSOIHistoryData <- function(dateBegin = NULL,
     }
     
     dateBegin <- as.Date(dateBegin, format = "%Y-%m-%d")
-    dateEnd <- min(dateBegin + 10, Sys.Date())
+    dateEnd <- min(dateBegin + extractLength, Sys.Date())
     
-    loginfo(paste("Function", functionName, "Update Data Up to", dateEnd), logger = consoleLog)
+    flog.info(paste("Function", functionName, "Update Data", dateBegin, " => ", dateEnd), name = reportName)
     soiHistoryData <- ExtractSOIHistory(soiHistoryData,
                                         server = serverIP, username = user, 
                                         password = password,
                                         dateBegin = dateBegin, dateEnd = dateEnd,
-                                        batchSize = 500000)
+                                        batchSize = 400000)
     
     soiHistoryData %<>%
       mutate(created_at = as.POSIXct(created_at, "%Y-m-%d %H:%M:%S"),
@@ -52,21 +52,19 @@ UpdateSOIHistoryData <- function(dateBegin = NULL,
     
     latestUpdatedTime <- as.Date(max(soiHistoryData$created_at))
     soiHistoryData %<>%
-      filter(created_at >= (latestUpdatedTime - 190))
+      filter(created_at >= as.POSIXct(latestUpdatedTime - 190))
     
     save(soiHistoryData, file = "1_Input/RData/soiHistoryData.RData",
          compress = TRUE)
     
-    for (iWarn in warnings()){
-      logwarn(paste(functionName, iWarn), logger = reportName)
-    }
-    
     soiHistoryData
     
   }, error = function(err) {
-    logerror(paste(functionName, err, sep = " - "), logger = consoleLog)
+    flog.error(paste(functionName, err, sep = " - "), name = reportName)
+    
+    NULL 
   }, finally = {
-    loginfo(paste(functionName, "ended"), logger = reportName)
+    flog.info(paste(functionName, "ended"), name = reportName)
   })
   
   output

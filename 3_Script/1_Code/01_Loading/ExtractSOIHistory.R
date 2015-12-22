@@ -10,10 +10,12 @@ ExtractSOIHistory <- function(soiHistoryData,
     require(logging)
   })
   
-  functionName <- "ExExtractsoiHis"
-  loginfo(paste("Function", functionName, "started"), logger = reportName)
+  functionName <- "ExtractsoiHis"
+  flog.info(paste("Function", functionName, "started"), name = reportName)
   
   output <- tryCatch({
+    
+    flog.info(paste("Function", functionName, "Data rows before: ", nrow(soiHistoryData)), name = reportName)
     
     conn <- dbConnect(MySQL(), username = username,
                       password = password, host = server, port = 3306,
@@ -33,10 +35,11 @@ ExtractSOIHistory <- function(soiHistoryData,
       paste0("SELECT
       	        soihis.*
               FROM oms_live.ims_sales_order_item_status_history soihis
-              WHERE soihis.created_at BETWEEN '", dateBegin,"' AND '", dateEnd,"'")
+              WHERE soihis.created_at BETWEEN '", dateBegin,"' AND '", dateEnd,"'
+             ORDER BY soihis.created_at")
     
     
-    print(rowCount)
+    flog.info(paste("Function", functionName, "Data rows: ", rowCount), name = reportName)
     rs <- dbSendQuery(conn, dataQuery)
     pb <- txtProgressBar(min=0, max=rowCount, style = 3)
     iProgress <- 0
@@ -45,16 +48,12 @@ ExtractSOIHistory <- function(soiHistoryData,
     rowFetched <- 0    
     while (rowFetched < rowCount) {
       temp <- dbFetch(rs, n = batchSize)
-      rowFetched <- rowFetched + nrow(temp)
+      rowFetched <- rowFetched + batchSize
       if (is.null(soiHistoryData)) {
         soiHistoryData <- temp
       } else {
         soiHistoryData <- rbind(soiHistoryData,temp)
       }
-      
-      
-      save(soiHistoryData, file = "1_Input/RData/soiHistoryData.RData",
-           compress = TRUE)
       
       iProgress <- rowFetched
       setTxtProgressBar(pb, iProgress)
@@ -65,18 +64,17 @@ ExtractSOIHistory <- function(soiHistoryData,
     dbClearResult(rs)
     rm(temp)
     
-    for (iWarn in warnings()){
-      logwarn(paste(functionName, iWarn), logger = reportName)
-    }
+    flog.info(paste("Function", functionName, "Data rows after: ", nrow(soiHistoryData)), name = reportName)
     
-    assign("last.warning", NULL, envir = baseenv())
     soiHistoryData
     
   }, error = function(err) {
-    logerror(paste(functionName, err, sep = " - "), logger = consoleLog)
+    flog.error(paste(functionName, err, sep = " - "), name = reportName)
+    
+    NULL
   }, finally = {
     dbDisconnect(conn)
-    loginfo(paste(functionName, "ended"), logger = reportName)
+    flog.info(paste(functionName, "ended"), name = reportName)
   })
   
   output

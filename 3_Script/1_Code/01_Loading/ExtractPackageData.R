@@ -7,13 +7,15 @@ ExtractPackageData <- function(packageData,
     require(magrittr)
     require(methods)
     require(RMySQL)
-    require(logging)
+    require(futile.logger)
   })
   
   functionName <- "ExtractPackageData"
-  loginfo(paste("Function", functionName, "started"), logger = reportName)
+  flog.info(paste("Function", functionName, "started"), name = reportName)
   
   output <- tryCatch({
+    
+    flog.info(paste("Function", functionName, "Data rows before: ", nrow(packageData)), name = reportName)
     
     conn <- dbConnect(MySQL(), username = user,
                       password = password, host = server, port = 3306,
@@ -51,9 +53,10 @@ ExtractPackageData <- function(packageData,
                WHERE 
                (
                pkgDispatch.updated_at between '", dateBegin, "' and '", dateEnd,"'
-               )")
+               )
+             ORDER BY pkgDispatch.updated_at")
     
-    print(rowCount)
+    flog.info(paste("Function", functionName, "Data rows: ", rowCount), name = reportName)
     rs <- dbSendQuery(conn, sellerQuery)
     pb <- txtProgressBar(min=0, max=rowCount, style = 3)
     iProgress <- 0
@@ -62,14 +65,12 @@ ExtractPackageData <- function(packageData,
     rowFetched <- 0    
     while (rowFetched < rowCount) {
       temp <- dbFetch(rs, n = batchSize)
-      rowFetched <- rowFetched + nrow(temp)
+      rowFetched <- rowFetched + batchSize
       if (is.null(packageData)) {
         packageData <- temp
       } else {
         packageData <- rbind(packageData,temp)
       }
-      save(packageData, file = "1_Input/RData/packageData.RData",
-           compress = TRUE)
       
       iProgress <- rowFetched
       setTxtProgressBar(pb, iProgress)
@@ -79,18 +80,15 @@ ExtractPackageData <- function(packageData,
     dbClearResult(rs)
     rm(temp)
     
-    for (iWarn in warnings()){
-      logwarn(paste(functionName, iWarn), logger = reportName)
-    }
-    assign("last.warning", NULL, envir = baseenv())
+    flog.info(paste("Function", functionName, "Data rows after: ", nrow(packageData)), name = reportName)
     
     packageData
     
   }, error = function(err) {
-    logerror(paste(functionName, err, sep = " - "), logger = consoleLog)
+    flog.error(paste(functionName, err, collapse = " - "), name = reportName)
   }, finally = {
     dbDisconnect(conn)
-    loginfo(paste(functionName, "ended"), logger = reportName)
+    flog.info(paste(functionName, "ended"), name = reportName)
   })
   
   output

@@ -1,16 +1,15 @@
-UpdatePackageData <- function(server, 
-                              dateBegin = NULL, 
-                              username, password) {
+UpdatePackageData <- function(dateBegin = NULL, extractLength = 10,
+                              server, username, password) {
   suppressMessages({
     require(dplyr)
     require(tools)
     require(magrittr)
     require(methods)
-    require(logging)
+    require(futile.logger)
   })
   
   functionName <- "UpdatepackageData"
-  loginfo(paste("Function", functionName, "started"), logger = reportName)
+  flog.info(paste("Function", functionName, "started"), name = reportName)
   
   output <- tryCatch({
     
@@ -24,7 +23,7 @@ UpdatePackageData <- function(server,
     
     if (is.null(dateBegin)) {
       if (is.null(packageData)) {
-        dateBegin <- Sys.Date() - 40
+        dateBegin <- Sys.Date() - 190
       } else {
         packageData %<>%
           mutate(tracking_updated_at = as.POSIXct(tracking_updated_at, "%Y-m-%d %H:%M:%S"))
@@ -34,9 +33,9 @@ UpdatePackageData <- function(server,
     }
     
     dateBegin <- as.Date(dateBegin, format = "%Y-%m-%d")
-    dateEnd <- min(dateBegin + 10, Sys.Date())
+    dateEnd <- min(dateBegin + extractLength, Sys.Date())
     
-    loginfo(paste("Function", functionName, "Update Data Up to", dateEnd), logger = consoleLog)
+    flog.info(paste("Function", functionName, "Update Data Up to", dateEnd), name = reportName)
     packageData <- ExtractPackageData(packageData,
                                       server = serverIP, username = user, 
                                       password = password,
@@ -54,21 +53,17 @@ UpdatePackageData <- function(server,
     
     latestUpdatedTime <- as.Date(max(packageData$tracking_updated_at))
     packageData %<>%
-      filter(tracking_updated_at >= (latestUpdatedTime - 190))
+      filter(tracking_updated_at >= as.POSIXct(latestUpdatedTime - 190))
     
     save(packageData, file = "1_Input/RData/packageData.RData",
          compress = TRUE)
     
-    for (iWarn in warnings()){
-      logwarn(paste(functionName, iWarn), logger = reportName)
-    }
-    
     packageData
     
   }, error = function(err) {
-    logerror(paste(functionName, err, sep = " - "), logger = consoleLog)
+    flog.error(paste(functionName, err, sep = " - "), name = reportName)
   }, finally = {
-    loginfo(paste(functionName, "ended"), logger = reportName)
+    flog.info(paste(functionName, "ended"), name = reportName)
   })
   
   output

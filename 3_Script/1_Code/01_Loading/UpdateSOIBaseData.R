@@ -8,7 +8,7 @@ suppressMessages({
   })
   
   functionName <- "UpdateSOIBaseData"
-  loginfo(paste("Function", functionName, "started"), logger = reportName)
+  flog.info(paste("Function", functionName, "started"), name = reportName)
   
   output <- tryCatch({
     
@@ -28,17 +28,13 @@ suppressMessages({
              Shipped_Date = shipped,
              Cancelled_Date = cancelled,
              Delivered_Date = delivered)
-    
-    for (iWarn in warnings()){
-      logwarn(paste(functionName, iWarn), logger = reportName)
-    }
-    
+
     soiBasedData
     
   }, error = function(err) {
-    logerror(paste(functionName, err, sep = " - "), logger = consoleLog)
+    flog.error(paste(functionName, err, sep = " - "), name = consoleLog)
   }, finally = {
-    loginfo(paste(functionName, "ended"), logger = reportName)
+    flog.info(paste(functionName, "ended"), name = reportName)
   })
   
   output

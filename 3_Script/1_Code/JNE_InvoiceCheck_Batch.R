@@ -22,11 +22,12 @@ tryCatch({
       } else if (dateUpdate < dateModify) dateUpdate <- dateModify
     }
   }
+  
   if(file.exists(file.path("3_Script/3_RData", "OMSData.RData")) &
      file.mtime(file.path("3_Script/3_RData", "OMSData.RData")) > dateUpdate) {
     load("3_Script/3_RData/OMSData.RData")
     load("3_Script/3_RData/PackageDataSummarized.RData")
-  }else{
+  } else {
     OMSData <- LoadOMSData(OMSDataFolder)
     PackageDataSummarized <- GeneratePackageData(OMSData)
     save(OMSData, file = "3_Script/3_RData/OMSData.RData")
