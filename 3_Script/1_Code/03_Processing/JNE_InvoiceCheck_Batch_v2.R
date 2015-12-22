@@ -7,7 +7,7 @@ tryCatch({
   source("3_Script/1_Code/01_Loading/Load_Invoice_Data.R")
   
   load("packageBaseData")
-  invoiceData <- LoadInvoiceData("1_Input/JNE/Invoice")
+  invoiceData <- LoadInvoiceData("1_Input/JNE/01_Invoice/")
   
   mergedOMSData <- left_join(invoiceData,
                              packageBaseData,
@@ -178,7 +178,8 @@ tryCatch({
 #   loginfo(paste0("--- Done!!!"), logger = "IDInvoiceCheck.Log")
 #   loginfo(paste0(warnings()), logger = "IDInvoiceCheck")
 },error = function(err){
-  logerror(err, logger = "IDInvoiceCheck")
-  logerror("PLease send 3_Script/Log folder to Regional OPS BI for additional support",
-           logger = "IDInvoiceCheck.Log")
+  flog.error(err, logger = "IDInvoiceCheck")
+  flog.error("PLease send 3_Script/Log folder to Regional OPS BI for additional support",
+             logger = "IDInvoiceCheck.Log")
 })
+
