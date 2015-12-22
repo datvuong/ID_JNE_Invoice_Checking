@@ -54,6 +54,8 @@ tryCatch({
                                     ifelse(tracking_number %in% paidInvoice,
                                            paidInvoiceList[tracking_number,]$InvoiceFile,"")))
   
+  flog.info("Done Invoice Calculation", name = reportName)
+  
   finalData <- mergedOMSData %>%
     select(`3pl_name`, package_pickup_date, package_pod_date,
            invoice_number, tracking_number, package_number,
@@ -68,6 +70,8 @@ tryCatch({
            Seller_Code, tax_class, RTS_Date, Shipped_Date,
            Delivered_Date, FrieghtCost_Flag, InsuranceFee_Flag,
            COD_Flag, Duplication_Flag, DuplicationSource)
+  
+  flog.info("Writting Output File in CSV Format", name = reportName)
   
   invoiceFiles <- unique(finalData$rawFile)
   for (iFile in invoiceFiles) {

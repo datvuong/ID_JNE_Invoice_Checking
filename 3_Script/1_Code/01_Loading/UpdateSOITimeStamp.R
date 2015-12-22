@@ -34,7 +34,8 @@ UpdateSOITimeStamp <- function(soiHistoryData) {
              shipped =`5`,
              cancelled = `9`,
              delivered = `27`) %>%
-      mutate(rts = ifelse(is.na(rts_wh), rts_ds, rts_wh)) %>%
+      mutate(rts = as.POSIXct(ifelse(is.na(rts_wh), rts_ds, rts_wh),
+                              origin = "1970-01-01 UTC")) %>%
       select(-c(rts_wh, rts_ds))
     
     soiTimestampData

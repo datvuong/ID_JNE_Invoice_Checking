@@ -30,7 +30,7 @@ BuildPackageData <- function(soiBasedData) {
       mutate(actualWeight = sum(package_weight)) %>%
       mutate(volumetricDimension = sum((package_length * package_width * package_height))) %>%
       mutate(missingActualWeight = any(is.na(actualWeight))) %>%
-      mutate(volumetricDimension = any(is.na(volumetricDimension))) %>%
+      mutate(missingVolumetricDimension = any(is.na(volumetricDimension))) %>%
       mutate(Seller_Code = paste(GetUniqueList(Seller_Code), collapse = "/")) %>%
       mutate(Seller = paste(GetUniqueList(Seller), collapse = "/"))
     
@@ -40,7 +40,7 @@ BuildPackageData <- function(soiBasedData) {
              skus, skus_names, actualWeight, missingActualWeight,
              volumetricDimension, 
              payment_method, Seller_Code, Seller, tax_class,
-             RTS_Date, Shipped_Date, volumetricDimension,
+             RTS_Date, Shipped_Date, 
              Cancelled_Date, Delivered_Date) %>%
       filter(!duplicated(tracking_number))
     

@@ -23,11 +23,8 @@ suppressMessages({
              shipping_surcharge, Item_Status, tracking_number, 
              package_number, shipment_provider_name, Seller_Code, Seller,
              tax_class, package_length, package_width, package_height,
-             package_weight,
-             RTS_Date = rts, 
-             Shipped_Date = shipped,
-             Cancelled_Date = cancelled,
-             Delivered_Date = delivered)
+             package_weight, RTS_Date = rts, Shipped_Date = shipped,
+             Cancelled_Date = cancelled, Delivered_Date = delivered)
 
     soiBasedData
     
