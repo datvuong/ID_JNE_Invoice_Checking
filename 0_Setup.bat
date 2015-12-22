@@ -1,4 +1,0 @@
-@Echo off
-R
-
-pause
