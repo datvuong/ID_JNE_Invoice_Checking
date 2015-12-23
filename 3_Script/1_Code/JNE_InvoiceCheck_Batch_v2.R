@@ -73,7 +73,7 @@ tryCatch({
            redelivery_fee, rejection_fee, cod_fee,
            special_area_fee, special_handling_fee,
            insurance_fee, vat, origin_branch, destination_branch,
-           rawFile, FrieghtCost_Calculate, FreightCostLazadaWeight,
+           rawFile, FrieghtCostInvoice_Calculate, FreightCostLazadaWeight,
            InsuranceFee_Calculate, COD_calculated, totalPaidPrice = paidPrice,
            shippingFee, shippingSurcharge, package_chargeable_weight,
            actualWeight, missingActualWeight,
