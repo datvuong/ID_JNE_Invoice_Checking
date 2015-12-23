@@ -1,4 +1,5 @@
-UpdateSOIBaseData <- function(soiData, packageData, soiHistoryData) {
+UpdateSOIBaseData <- function(soiData, packageData, soiHistoryData,
+                              skuData) {
 suppressMessages({
     require(dplyr)
     require(tools)
@@ -13,6 +14,7 @@ suppressMessages({
   output <- tryCatch({
     
     soiBasedData <- soiData %>%
+      left_join(skuData, by = c("sku" = "sku")) %>%
       left_join(packageData, by = c("id_sales_order_item" = "fk_sales_order_item")) %>%
       left_join(soiHistoryData, by = c("id_sales_order_item" = "fk_sales_order_item"))
     
@@ -29,7 +31,7 @@ suppressMessages({
     soiBasedData
     
   }, error = function(err) {
-    flog.error(paste(functionName, err, sep = " - "), name = consoleLog)
+    flog.error(paste(functionName, err, sep = " - "), name = reportName)
   }, finally = {
     flog.info(paste(functionName, "ended"), name = reportName)
   })

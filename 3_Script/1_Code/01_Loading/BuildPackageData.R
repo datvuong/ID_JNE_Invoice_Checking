@@ -21,7 +21,6 @@ BuildPackageData <- function(soiBasedData) {
       filter(!is.na(tracking_number)) %>%
       group_by(tracking_number) %>%
       mutate(itemsCount = n_distinct(id_sales_order_item)) %>%
-      mutate(unitPrice = sum(unit_price)) %>%
       mutate(paidPrice = sum(paid_price)) %>%
       mutate(shippingFee = sum(shipping_fee)) %>%
       mutate(shippingSurcharge = sum(shipping_surcharge)) %>%
@@ -36,12 +35,12 @@ BuildPackageData <- function(soiBasedData) {
     
     PackageData %<>%
       select(order_nr, tracking_number, package_number, itemsCount,
-             unitPrice, paidPrice, shippingFee, shippingSurcharge,
+             paidPrice, shippingFee, shippingSurcharge,
              skus, skus_names, actualWeight, missingActualWeight,
-             volumetricDimension, 
-             payment_method, Seller_Code, Seller, tax_class,
-             RTS_Date, Shipped_Date, 
-             Cancelled_Date, Delivered_Date) %>%
+             volumetricDimension, missingVolumetricDimension,
+             shipment_provider_name, payment_method, 
+             Seller_Code, Seller, tax_class, RTS_Date, 
+             Shipped_Date, Cancelled_Date, Delivered_Date) %>%
       filter(!duplicated(tracking_number))
     
     PackageData

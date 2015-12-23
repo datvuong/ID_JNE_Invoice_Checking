@@ -7,10 +7,13 @@ source("3_Script/1_Code/01_Loading/BuildPackageData.R")
 load("1_Input/RData/soiData.RData")
 load("1_Input/RData/packageData.RData")
 load("1_Input/RData/soiHistoryData.RData")
+load("1_Input/RData/skuData.RData")
 
 flog.info("Consolidate OMS Data", name = reportName)
 soiTimestampData <- UpdateSOITimeStamp(soiHistoryData)
-soiBasedData <- UpdateSOIBaseData(soiData, packageData, soiTimestampData)
+rm(soiHistoryData)
+soiBasedData <- UpdateSOIBaseData(soiData, packageData, soiTimestampData,
+                                  skuData)
 packageBaseData <- BuildPackageData(soiBasedData)
 save(packageBaseData, file = "1_Input/RData/packageBaseData.RData",
      compress = TRUE)

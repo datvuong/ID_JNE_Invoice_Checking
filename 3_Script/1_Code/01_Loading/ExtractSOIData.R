@@ -25,8 +25,6 @@ ExtractSOIData <- function(soiData,
              COUNT(*)
              FROM 
   oms_live.ims_sales_order_item soi 
-             INNER JOIN bob_live.catalog_simple bobsku ON bobsku.sku = soi.sku 
-             INNER JOIN bob_live.catalog_config skuConfig ON bobsku.fk_catalog_config = skuConfig.id_catalog_config 
              INNER JOIN oms_live.ims_sales_order so ON soi.fk_sales_order = so.id_sales_order 
              INNER JOIN oms_live.ims_sales_order_item_status itemStatus ON soi.fk_sales_order_item_status = itemStatus.id_sales_order_item_status 
              LEFT JOIN screport.sales_order_item scsoi ON soi.id_sales_order_item = scsoi.src_id 
@@ -54,7 +52,6 @@ ExtractSOIData <- function(soiData,
               ) business_unit, 
               so.payment_method, 
               soi.sku,
-              soi.name as product_name,
               soi.unit_price, 
               soi.paid_price, 
               soi.shipping_fee, 
@@ -62,15 +59,9 @@ ExtractSOIData <- function(soiData,
               itemStatus.name Item_Status, 
               seller.short_code 'Seller_Code', 
               seller.name 'Seller',
-              seller.tax_class, 
-              skuConfig.package_length, 
-              skuConfig.package_width, 
-              skuConfig.package_height, 
-              skuConfig.package_weight 
+              seller.tax_class
              FROM 
               oms_live.ims_sales_order_item soi 
-              INNER JOIN bob_live.catalog_simple bobsku ON bobsku.sku = soi.sku 
-              INNER JOIN bob_live.catalog_config skuConfig ON bobsku.fk_catalog_config = skuConfig.id_catalog_config 
               INNER JOIN oms_live.ims_sales_order so ON soi.fk_sales_order = so.id_sales_order 
               INNER JOIN oms_live.ims_sales_order_item_status itemStatus ON soi.fk_sales_order_item_status = itemStatus.id_sales_order_item_status 
               LEFT JOIN screport.sales_order_item scsoi ON soi.id_sales_order_item = scsoi.src_id 
