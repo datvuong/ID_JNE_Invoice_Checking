@@ -39,9 +39,17 @@ tryCatch({
                              by=c("destination_branch"="Coding"))
   
   mergedOMSData %<>%
+    mutate(volumetricWeight = volumetricDimension / 6000) %>%
+    replace_na(list(volumetricWeight = 0, actualWeight = 0)) %>%
+    mutate(lazadaWeight = ifelse(volumetricWeight > actualWeight,
+                                 volumetricWeight, actualWeight)) %>%
+    mutate(lazadaWeight = round(lazadaWeight + 0.49, 0))
+  
+  mergedOMSData %<>%
     replace_na(list(shippingFee = 0, shippingSurcharge = 0))
   mergedOMSData %<>%
-    mutate(FrieghtCost_Calculate=TARIF * package_chargeable_weight,
+    mutate(FrieghtCostInvoice_Calculate=TARIF * package_chargeable_weight,
+           FreightCostLazadaWeight = TARIF * lazadaWeight,
            InsuranceFee_Calculate=ifelse((paidPrice + shippingFee + shippingSurcharge) < 1000000,2500,
                                          0.0025 * (paidPrice + shippingFee + shippingSurcharge))) %>%
     mutate(COD_calculated = ifelse(payment_method == "CashOnDelivery",
@@ -65,8 +73,8 @@ tryCatch({
            redelivery_fee, rejection_fee, cod_fee,
            special_area_fee, special_handling_fee,
            insurance_fee, vat, origin_branch, destination_branch,
-           rawFile, FrieghtCost_Calculate, InsuranceFee_Calculate,
-           COD_calculated, totalPaidPrice = paidPrice,
+           rawFile, FrieghtCost_Calculate, FreightCostLazadaWeight,
+           InsuranceFee_Calculate, COD_calculated, totalPaidPrice = paidPrice,
            shippingFee, shippingSurcharge, package_chargeable_weight,
            actualWeight, missingActualWeight,
            volumetricDimension, missingVolumetricDimension,
@@ -85,11 +93,10 @@ tryCatch({
                row.names = FALSE)
   }
   
+  flog.info("Done", name = reportName)
+  
 },error = function(err){
   flog.error(err, name = reportName)
   flog.error("PLease send 3_Script/Log folder to Regional OPS BI for additional support",
              name = reportName)
 })
-
-
-flog.info("Done", name = reportName)
