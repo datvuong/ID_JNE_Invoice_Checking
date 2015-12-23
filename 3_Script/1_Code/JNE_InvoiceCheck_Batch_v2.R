@@ -54,7 +54,7 @@ tryCatch({
                                          0.0025 * (paidPrice + shippingFee + shippingSurcharge))) %>%
     mutate(COD_calculated = ifelse(payment_method == "CashOnDelivery",
                                    0.01 * (paidPrice + shippingFee + shippingSurcharge), 0)) %>%
-    mutate(FrieghtCost_Flag=ifelse(carrying_fee - FrieghtCost_Calculate < 1,"Okay","Not-Okay")) %>%
+    mutate(FrieghtCost_Flag=ifelse(carrying_fee - FrieghtCostInvoice_Calculate < 1,"Okay","Not-Okay")) %>%
     mutate(InsuranceFee_Flag=ifelse(insurance_fee - InsuranceFee_Calculate < 1,"Okay","Not-Okay")) %>%
     mutate(COD_Flag=ifelse(cod_fee - COD_calculated < 1,"Okay","Not-Okay")) %>%
     mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
