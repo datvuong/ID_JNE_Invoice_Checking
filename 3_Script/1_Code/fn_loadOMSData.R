@@ -76,7 +76,7 @@ LoadOMSData <- function(omsDataFolder){
   omsDataAll %<>% 
     ungroup() %>%
     arrange(id_sales_order_item, desc(RTS_Date)) %>%
-    filter(!duplicated(id_sales_order_item))
+    filter(!duplicated(id_sales_order_item, tracking_number))
   
   omsDataAll %<>%
     mutate(tracking_number=gsub("^0","",tracking_number)) #remove leading ZERO of tracking number to mapped with Invoice Data

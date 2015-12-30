@@ -39,3 +39,4 @@ Temporary Items
 !*.vbs
 !*.bat
 packrat/lib*/
+.Rproj.user

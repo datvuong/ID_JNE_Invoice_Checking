@@ -1,17 +1,4 @@
-dateReport <- format(Sys.time(), "%Y%m%d%H%M")
-
-suppressMessages({
-  library(dplyr)
-  library(tidyr)
-  library(magrittr)
-  library(lubridate)
-  library(logging)
-})
-
-addHandler(writeToFile, logger="IDInvoiceCheck",
-           file=file.path("3_Script/2_Log",
-                          paste0("ID_InvoiceChecking",dateReport,".csv")))
-addHandler(writeToConsole , logger="IDInvoiceCheck.Log")
+source("3_Script/1_Code/00_init.R")
 
 tryCatch({
   
@@ -35,11 +22,12 @@ tryCatch({
       } else if (dateUpdate < dateModify) dateUpdate <- dateModify
     }
   }
+  
   if(file.exists(file.path("3_Script/3_RData", "OMSData.RData")) &
      file.mtime(file.path("3_Script/3_RData", "OMSData.RData")) > dateUpdate) {
     load("3_Script/3_RData/OMSData.RData")
     load("3_Script/3_RData/PackageDataSummarized.RData")
-  }else{
+  } else {
     OMSData <- LoadOMSData(OMSDataFolder)
     PackageDataSummarized <- GeneratePackageData(OMSData)
     save(OMSData, file = "3_Script/3_RData/OMSData.RData")
@@ -83,10 +71,10 @@ tryCatch({
       
       InvoiceMappedRate %<>%
         mutate(FrieghtCost_Calculate=TARIF * Weight,
-               InsuranceFee_Calculate=ifelse(Total_unit_price < 1000000,2500,
-                                             0.0025*Total_unit_price)) %>%
-        mutate(FrieghtCost_Flag=ifelse(FrieghtCost_Calculate==Amount,"Okay","Not-Okay")) %>%
-        mutate(InsuranceFee_Flag=ifelse(InsuranceFee_Calculate==Insurance,"Okay","Not-Okay")) %>%
+               InsuranceFee_Calculate=ifelse(COD_Amount < 1000000,2500,
+                                             0.0025 * COD_Amount)) %>%
+        mutate(FrieghtCost_Flag=ifelse(Amount - FrieghtCost_Calculate < 1,"Okay","Not-Okay")) %>%
+        mutate(InsuranceFee_Flag=ifelse(Insurance - InsuranceFee_Calculate < 1,"Okay","Not-Okay")) %>%
         mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
                                        ifelse(tracking_number %in% paidInvoice,
                                               "Duplicated","Not_Duplicated"))) %>%
@@ -156,15 +144,15 @@ tryCatch({
       InvoiceMapped %<>%
         mutate(COD_Fee_Calculated=ifelse(payment_method=="CashOnDelivery" &
                                            !is.na(Delivered_Date),
-                                         0.01*COD_Amount,0)) %>%
-        mutate(COD_Flag=ifelse(COD_Fee_Calculated>=Management_Fee,
-                               "Okay","Not-Okay")) %>%
+                                         0.01 * COD_Amount,0)) %>%
+        mutate(COD_Flag=ifelse(COD_Fee_Calculated >= Management_Fee,
+                               "Okay", "Not-Okay")) %>%
         mutate(Duplication_Flag=ifelse(duplicated(tracking_number),"Duplicated",
                                        ifelse(tracking_number %in% paidInvoice,
-                                              "Duplicated",NA))) %>%
+                                              "Duplicated","Not_Duplicated"))) %>%
         mutate(DuplicationSource=ifelse(duplicated(tracking_number),"Self_Duplicated",
                                         ifelse(tracking_number %in% paidInvoice,
-                                               paidInvoiceList[tracking_number,]$InvoiceFile,NA)))
+                                               paidInvoiceList[tracking_number,]$InvoiceFile,"Not_Duplicated")))
       
       InvoiceMapped %<>%
         mutate(Order_Nr = ifelse(is.na(Order_Nr) & !is.na(order_nr),
