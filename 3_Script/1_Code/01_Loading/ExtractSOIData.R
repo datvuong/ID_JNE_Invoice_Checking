@@ -40,10 +40,9 @@ ExtractSOIData <- function(soiData,
     
     sellerQuery <- 
       paste0("SELECT
-              so.order_nr, 
+              so.order_nr,
               soi.id_sales_order_item, 
               soi.bob_id_sales_order_item, 
-              scsoi.id_sales_order_item SC_SOI_ID, 
               soi.created_at item_created_at,
               soi.updated_at item_updated_at,
               if(
@@ -57,15 +56,12 @@ ExtractSOIData <- function(soiData,
               soi.shipping_fee, 
               soi.shipping_surcharge, 
               itemStatus.name Item_Status, 
-              seller.short_code 'Seller_Code', 
-              seller.name 'Seller',
-              seller.tax_class
+              soi.fk_marketplace_merchant,
+              so.fk_sales_order_address_shipping
              FROM 
               oms_live.ims_sales_order_item soi 
               INNER JOIN oms_live.ims_sales_order so ON soi.fk_sales_order = so.id_sales_order 
               INNER JOIN oms_live.ims_sales_order_item_status itemStatus ON soi.fk_sales_order_item_status = itemStatus.id_sales_order_item_status 
-              LEFT JOIN screport.sales_order_item scsoi ON soi.id_sales_order_item = scsoi.src_id 
-              LEFT JOIN screport.seller seller ON scsoi.fk_seller = seller.id_seller 
              WHERE 
               (
                 soi.updated_at between '", dateBegin, "' and '", dateEnd,"'

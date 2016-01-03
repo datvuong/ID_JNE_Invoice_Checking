@@ -1,4 +1,4 @@
-UpdateSOIBaseData <- function(soiData, packageData, soiHistoryData,
+UpdateSOIBaseData <- function(soiData, packageData, soiTimestampData,
                               skuData) {
 suppressMessages({
     require(dplyr)
@@ -16,7 +16,7 @@ suppressMessages({
     soiBasedData <- soiData %>%
       left_join(skuData, by = c("sku" = "sku")) %>%
       left_join(packageData, by = c("id_sales_order_item" = "fk_sales_order_item")) %>%
-      left_join(soiHistoryData, by = c("id_sales_order_item" = "fk_sales_order_item"))
+      left_join(soiTimestampData, by = c("id_sales_order_item" = "fk_sales_order_item"))
     
     soiBasedData %<>%
       select(order_nr, id_sales_order_item, bob_id_sales_order_item,

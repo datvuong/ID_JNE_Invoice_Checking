@@ -80,7 +80,8 @@ tryCatch({
            volumetricDimension, missingVolumetricDimension,
            shipment_provider_name, payment_method, 
            Seller_Code, tax_class, RTS_Date, Shipped_Date,
-           Delivered_Date, FrieghtCost_Flag, InsuranceFee_Flag,
+           Delivered_Date, level_2_name, level_3_name, level_4_name,
+           FrieghtCost_Flag, InsuranceFee_Flag,
            COD_Flag, Duplication_Flag, DuplicationSource)
   
   flog.info("Writting Output File in CSV Format", name = reportName)
