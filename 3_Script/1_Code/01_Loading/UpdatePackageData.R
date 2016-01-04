@@ -35,7 +35,7 @@ UpdatePackageData <- function(dateBegin = NULL, extractLength = 10,
     dateBegin <- as.Date(dateBegin, format = "%Y-%m-%d")
     dateEnd <- min(dateBegin + extractLength, Sys.Date())
     
-    flog.info(paste("Function", functionName, "Update Data Up to", dateEnd), name = reportName)
+    flog.info(paste("Function", functionName, "Update Data", dateBegin, " => ", dateEnd), name = reportName)
     packageData <- ExtractPackageData(packageData,
                                       server = serverIP, username = user, 
                                       password = password,
