@@ -14,7 +14,7 @@ LoadInvoiceData <- function(invoicePath) {
   output <- tryCatch({
     
     excelFiles <- list.files(invoicePath)
-    excelFiles <- excelFiles[grepl(".xls", excelFiles)]
+    excelFiles <- excelFiles[grepl("^[^~\\$].*\\.xls", excelFiles)]
     invoiceData <- NULL
     colNames <- c("line_id", "3pl_name", "package_pickup_date",
                   "package_pod_date", "invoice_number", "package_number",
