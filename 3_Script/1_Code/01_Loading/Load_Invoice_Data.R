@@ -23,12 +23,20 @@ LoadInvoiceData <- function(invoicePath) {
                   "package_length", "package_weight", "package_chargeable_weight",
                   "carrying_fee", "redelivery_fee", "rejection_fee",
                   "cod_fee", "special_area_fee", "special_handling_fee",
-                  "insurance_fee", "vat", "origin_branch", "destination_branch",
-                  "delivery_zone_zip_code", "rate_type")
+                  "insurance_fee", "vat", "origin_branch",
+                  "destination_branch", "delivery_zone_zip_code", "rate_type")
     fullData <- NULL
     for (ifile in excelFiles) {
       wb <- loadWorkbook(file.path(invoicePath, ifile))
-      invoiceFileData <- readWorksheet(wb, 1)
+      invoiceFileData <- readWorksheet(wb, 1, colTypes = c(XLC$DATA_TYPE.STRING, XLC$DATA_TYPE.STRING, XLC$DATA_TYPE.STRING,
+                                                           XLC$DATA_TYPE.STRING, XLC$DATA_TYPE.STRING, XLC$DATA_TYPE.STRING,
+                                                           XLC$DATA_TYPE.STRING, XLC$DATA_TYPE.STRING, XLC$DATA_TYPE.STRING,
+                                                           XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.NUMERIC,
+                                                           XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.NUMERIC,
+                                                           XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.NUMERIC,
+                                                           XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.NUMERIC,
+                                                           XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.NUMERIC, XLC$DATA_TYPE.STRING,
+                                                           XLC$DATA_TYPE.STRING, XLC$DATA_TYPE.STRING, XLC$DATA_TYPE.STRING))
       names(invoiceFileData) <- colNames
       invoiceFileData %<>%
         mutate(rawFile = ifile)
